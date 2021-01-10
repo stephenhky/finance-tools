@@ -31,9 +31,11 @@ def get_argparser():
     argparser.add_argument('outputfile', help='path of output Excel file')
     argparser.add_argument('--localsymdf', default=os.path.dirname(__file__), help='location of allsymdf.h5')
     argparser.add_argument('--cacheddir', default=None, help='Cached directory (Default: None, meaning no caching)')
-    argparser.add_argument('--logginglevel', default='info', help='Logging level (default: info, options: {})'.format(', '.join(logginglevel_dict.keys())))
+    argparser.add_argument('--logginglevel', default='info', help='Logging level (default: info, options: {})'.format(
+        ', '.join(logginglevel_dict.keys())))
     argparser.add_argument('--waittime', default=1, type=int, help='waiting time (sec) for time-out error (default: 1)')
-    argparser.add_argument('--batchslice', default=50, type=int, help='number of symbols to be queried in parallel at the same time (default: 50)')
+    argparser.add_argument('--batchslice', default=50, type=int,
+                           help='number of symbols to be queried in parallel at the same time (default: 50)')
     return argparser
 
 
@@ -57,17 +59,17 @@ async def async_compute_symbol_info(symbol, startdate, enddate, cacheddir=None, 
         try:
             isrownull = symdf['Close'].isnull()
             r, sigma = fit_BlackScholesMerton_model(
-                np.array(symdf.loc[~isrownull, 'TimeStamp']), 
+                np.array(symdf.loc[~isrownull, 'TimeStamp']),
                 np.array(symdf.loc[~isrownull, 'Close'])
             )
             downside_risk = estimate_downside_risk(
-                np.array(symdf.loc[~isrownull, 'TimeStamp']), 
-                np.array(symdf.loc[~isrownull, 'Close']), 
+                np.array(symdf.loc[~isrownull, 'TimeStamp']),
+                np.array(symdf.loc[~isrownull, 'Close']),
                 0.0
             )
             upside_risk = estimate_upside_risk(
-                np.array(symdf.loc[~isrownull, 'TimeStamp']), 
-                np.array(symdf.loc[~isrownull, 'Close']), 
+                np.array(symdf.loc[~isrownull, 'TimeStamp']),
+                np.array(symdf.loc[~isrownull, 'Close']),
                 0.0
             )
             estimations = {
@@ -97,12 +99,12 @@ async def async_compute_symbol_info(symbol, startdate, enddate, cacheddir=None, 
 def sliced_estimate_all_symbols_from_yahoo(symbols, startdate, enddate, cacheddir=None, waittime=1, slicesize=50):
     all_estimations = {}
     nbsymbols = len(symbols)
-    
+
     for startidx in tqdm(range(0, nbsymbols, slicesize)):
         loop = asyncio.get_event_loop()
         async_this_estimations = asyncio.gather(*[
             async_compute_symbol_info(symbol, startdate, enddate, cacheddir=cacheddir, waittime=waittime)
-            for symbol in symbols[startidx:min(startidx+slicesize, nbsymbols)]
+            for symbol in symbols[startidx:min(startidx + slicesize, nbsymbols)]
         ])
         completed_this_estimations = loop.run_until_complete(async_this_estimations)
         this_estimations = {
@@ -111,7 +113,7 @@ def sliced_estimate_all_symbols_from_yahoo(symbols, startdate, enddate, cacheddi
             if len(item) > 0
         }
         all_estimations.update(this_estimations)
-    
+
     return all_estimations
 
 
@@ -143,17 +145,16 @@ if __name__ == '__main__':
 
     # extracting Yahoo Finance Data
     all_estimations = sliced_estimate_all_symbols_from_yahoo(
-            list(concernedsymdf['symbol']), 
-            startdate, 
-            enddate, 
-            cacheddir=cacheddir,
-            waittime=waittime,
-            slicesize=slicesize
+        list(concernedsymdf['symbol']),
+        startdate,
+        enddate,
+        cacheddir=cacheddir,
+        waittime=waittime,
+        slicesize=slicesize
     )
- 
+
     # Writing out
     print('Writing to {}'.format(outputfile))
     pd.DataFrame([
         {'symbol': key, **values} for key, values in all_estimations.items()
     ]).to_excel(outputfile)
-    
