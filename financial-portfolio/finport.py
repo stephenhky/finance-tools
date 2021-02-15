@@ -1,12 +1,12 @@
 
 import logging
-
 import json
+
 from finsim.portfolio.create import get_optimized_portfolio_on_mpt_entropy_costfunction
 
 
 def portfolio_handler(event, context):
-    # getting qu
+    # getting query
     logging.info(event)
     logging.info(context)
     query = json.loads(event['body'])
