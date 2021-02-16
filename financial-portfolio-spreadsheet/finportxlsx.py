@@ -23,13 +23,14 @@ def spreadsheet_handler(event, context):
     logging.info(event)
     logging.info(context)
     portfolio = json.loads(event['body'])
+    filebasename = portfolio.get('filebasename')
 
     # generate pandas dataframe
     df = pd.DataFrame(portfolio['components'])[['symbol', 'yield', 'volatility', 'weight', 'nbshares']]
     df = df.sort_values(by=['weight'], ascending=False)
 
     # generate Excel file
-    filename = generate_filename()
+    filename = generate_filename() if filebasename is None else filebasename
     filename = filename+'.xlsx'
     filepath = os.path.join('/', 'tmp', filename)
     df.to_excel(filepath, index=False)
