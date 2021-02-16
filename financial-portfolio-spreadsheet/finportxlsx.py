@@ -31,7 +31,7 @@ def spreadsheet_handler(event, context):
     # generate Excel file
     filename = generate_filename()
     filename = filename+'.xlsx'
-    filepath = os.path.join('tmp', filename)
+    filepath = os.path.join('/', 'tmp', filename)
     df.to_excel(filepath, index=False)
 
     # copy to S3
@@ -53,3 +53,4 @@ def spreadsheet_handler(event, context):
 
 # References:
 # Writing files to S3: https://stackoverflow.com/questions/62522227/create-new-file-in-s3-using-aws-lambda-function
+#                      https://stackoverflow.com/questions/44233777/use-aws-lambda-to-upload-video-into-s3-with-download-url
