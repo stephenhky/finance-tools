@@ -25,7 +25,11 @@ def plot_handler(event, context):
     logging.info(context)
     query = json.loads(event['body'])
     startdate = query['startdate']
+    logging.info('start date: {}'.format(startdate))
+    print('start date: {}'.format(startdate))
     enddate = query['enddate']
+    logging.info('end date: {}'.format(enddate))
+    print('end date: {}'.format(enddate))
     filebasename = query.get('filebasename')
     filename = generate_filename() if filebasename is None else filebasename
     filename = filename + '.png'

@@ -12,6 +12,7 @@ RUN apt-get update && \
   unzip \
   libcurl4-openssl-dev
 
+RUN pip install -U pip
 RUN pip install -r requirements.txt
 RUN pip install awslambdaric boto3
 
