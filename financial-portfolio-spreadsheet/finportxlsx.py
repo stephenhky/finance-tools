@@ -41,6 +41,7 @@ def spreadsheet_handler(event, context):
     response = s3_client.upload_file(filepath, s3_bucket, filename)
 
     event['filename'] = filename
+    event['url'] = 'https://{}.s3.amazonaws.com/{}'.format(s3_bucket, filename)
     event['response'] = response
 
     # reference of a lambda output to API gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format

@@ -26,10 +26,8 @@ def plot_handler(event, context):
     query = json.loads(event['body'])
     startdate = query['startdate']
     logging.info('start date: {}'.format(startdate))
-    print('start date: {}'.format(startdate))
     enddate = query['enddate']
     logging.info('end date: {}'.format(enddate))
-    print('end date: {}'.format(enddate))
     filebasename = query.get('filebasename')
     filename = generate_filename() if filebasename is None else filebasename
     filename = filename + '.png'
@@ -37,13 +35,11 @@ def plot_handler(event, context):
 
     # generate pandas dataframe
     logging.info('Calculating worth over time')
-    print('Calculating worth over time')
     portfolio = Portfolio(query['components'])
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
 
     # plot
     logging.info('plot')
-    print('plot')
     f = plt.figure()
     f.set_figwidth(10)
     f.set_figheight(8)
@@ -55,12 +51,12 @@ def plot_handler(event, context):
 
     # copy to S3
     logging.info('copying to S3')
-    print('copying to S3')
     s3_bucket = config['bucket']
     s3_client = boto3.client('s3')
     response = s3_client.upload_file(filepath, s3_bucket, filename)
 
     event['filename'] = filename
+    event['url'] = 'https://{}.s3.amazonaws.com/{}'.format(s3_bucket, filename)
     event['response'] = response
 
     # reference of a lambda output to API gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format
