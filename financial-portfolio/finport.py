@@ -45,6 +45,7 @@ def portfolio_handler(event, context):
         for i in range(corr.shape[0])
     ]
     event['portfolio'] = portfolio_summary
+    event['symbols_nbshares'] = optimized_portfolio.symbols_nbshares
 
     # reference of a lambda output to API gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format
     req_res = {
