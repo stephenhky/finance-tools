@@ -7,7 +7,7 @@ from urllib.error import URLError
 
 import numpy as np
 from finsim.estimate.fit import fit_BlackScholesMerton_model
-from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk
+from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
 from finsim.data import get_yahoofinance_data
 
 
@@ -36,9 +36,13 @@ def symbol_handler(event, context):
     startdate = query['startdate']
     enddate = query['enddate']
     waittime = query.get('waittime', 1)
+    index = query.get('index', 'SPY')   # S&P 500 index as the base.
 
     # getting stock data
     symdf = waiting_get_yahoofinance_data(symbol, startdate, enddate, waittime=waittime)
+
+    # getting index
+    indexdf = waiting_get_yahoofinance_data(index, startdate, enddate, waittime=waittime)
 
     # estimation
     isrownull = symdf['Close'].isnull()
@@ -56,12 +60,18 @@ def symbol_handler(event, context):
         np.array(symdf.loc[~isrownull, 'Close']),
         0.0
     )
+    beta = estimate_beta(
+        np.array(symdf.loc[~isrownull, 'TimeStamp']),
+        np.array(symdf.loc[~isrownull, 'Close']),
+        np.array(indexdf.loc[~isrownull, 'Close']),
+    )
     estimations = {
         'symbol': symbol,
         'r': r,
         'vol': sigma,
         'downside_risk': downside_risk,
         'upside_risk': upside_risk,
+        'beta': beta,
         'data_startdate': symdf['TimeStamp'][0].date().strftime('%Y-%m-%d'),
         'data_enddate': symdf['TimeStamp'][-1].date().strftime('%Y-%m-%d'),
         'nbrecs': len(symdf.loc[~isrownull, :]),
