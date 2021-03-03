@@ -6,7 +6,7 @@ import random
 from datetime import datetime
 
 import boto3
-from finsim.portfolio import Portfolio
+from finsim.portfolio import Portfolio, DynamicPortfolio
 from matplotlib import pyplot as plt
 
 
@@ -14,6 +14,13 @@ def generate_filename():
     name = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz', k=20))
     timestr = datetime.strftime(datetime.utcnow(), '%Y%m%d%H%M%SUTC%z')
     return '{}_{}'.format(timestr, name)
+
+
+def construct_portfolio(portdict):
+    if portdict.get('name', '') == 'DynamicPortfolio':
+        return DynamicPortfolio.load_from_dict(portdict)
+    else:
+        return Portfolio(portdict)
 
 
 def plot_handler(event, context):
@@ -35,7 +42,7 @@ def plot_handler(event, context):
 
     # generate pandas dataframe
     logging.info('Calculating worth over time')
-    portfolio = Portfolio(query['components'])
+    portfolio = construct_portfolio(query['components'])
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
 
     # plot
