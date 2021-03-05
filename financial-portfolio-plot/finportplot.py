@@ -6,7 +6,7 @@ import random
 from datetime import datetime
 
 import boto3
-from finsim.portfolio import Portfolio, DynamicPortfolio
+from finsim.portfolio import Portfolio, DynamicPortfolioWithDividends
 from matplotlib import pyplot as plt
 
 
@@ -16,11 +16,14 @@ def generate_filename():
     return '{}_{}'.format(timestr, name)
 
 
-def construct_portfolio(portdict):
+def construct_portfolio(portdict, startdate):
     if portdict.get('name', '') == 'DynamicPortfolio':
-        return DynamicPortfolio.load_from_dict(portdict)
+        return DynamicPortfolioWithDividends.load_from_dict(portdict)
     else:
-        return Portfolio(portdict)
+        return DynamicPortfolioWithDividends({
+            'date': startdate,
+            'portfolio': Portfolio(portdict)
+        })
 
 
 def plot_handler(event, context):
@@ -37,12 +40,14 @@ def plot_handler(event, context):
     logging.info('end date: {}'.format(enddate))
     filebasename = query.get('filebasename')
     filename = generate_filename() if filebasename is None else filebasename
-    filename = filename + '.png'
-    filepath = os.path.join('/', 'tmp', filename)
+    imgfilename = filename + '.png'
+    imgfilepath = os.path.join('/', 'tmp', imgfilename)
+    xlsxfilename = filename + '.xlsx'
+    xlsxfilepath = os.path.join('/', 'tmp', xlsxfilename)
 
     # generate pandas dataframe
     logging.info('Calculating worth over time')
-    portfolio = construct_portfolio(query['components'])
+    portfolio = construct_portfolio(query['components'], startdate)
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
 
     # plot
@@ -53,18 +58,31 @@ def plot_handler(event, context):
     plt.xticks(rotation=90)
     plt.xlabel('Date')
     plt.ylabel('Portfolio Value')
-    plt.plot(worthdf['TimeStamp'], worthdf['value'])
-    plt.savefig(filepath)
+    stockline, = plt.plot(worthdf['TimeStamp'], worthdf['stock_value'], label='stock')
+    totalline, = plt.plot(worthdf['TimeStamp'], worthdf['value'], label='stock+dividend')
+    plt.legend([stockline, totalline], ['stock', 'stock+dividend'])
+    plt.savefig(imgfilepath)
+
+    # making spreadsheet
+    worthdf.to_excel(xlsxfilepath)
 
     # copy to S3
     logging.info('copying to S3')
     s3_bucket = config['bucket']
     s3_client = boto3.client('s3')
-    response = s3_client.upload_file(filepath, s3_bucket, filename)
+    imgresponse = s3_client.upload_file(imgfilepath, s3_bucket, imgfilename)
+    xlsxresponse = s3_client.upload_file(xlsxfilepath, s3_bucket, xlsxfilename)
 
-    event['filename'] = filename
-    event['url'] = 'https://{}.s3.amazonaws.com/{}'.format(s3_bucket, filename)
-    event['response'] = response
+    event['plot'] = {
+        'filename': imgfilename,
+        'url': 'https://{}.s3.amazonaws.com/{}'.format(s3_bucket, imgfilename),
+        'response': imgresponse
+    }
+    event['spreadsheet'] = {
+        'filename': xlsxfilename,
+        'url': 'https://{}.s3.amazonaws.com/{}'.format(s3_bucket, xlsxfilename),
+        'response': xlsxresponse
+    }
 
     # reference of a lambda output to API gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format
     req_res = {
