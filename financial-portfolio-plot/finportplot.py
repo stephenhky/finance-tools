@@ -6,6 +6,7 @@ import random
 from datetime import datetime
 
 import boto3
+# import pandas as pd
 from finsim.portfolio import Portfolio, DynamicPortfolioWithDividends
 from matplotlib import pyplot as plt
 
@@ -49,17 +50,23 @@ def plot_handler(event, context):
     logging.info('Calculating worth over time')
     portfolio = construct_portfolio(query['components'], startdate)
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
+    # pd.set_option('display.max_rows', len(worthdf))
+    # print(pd.DataFrame.from_records(portfolio.cashtimeseries))
+    # print(worthdf)
+    # pd.reset_option('display.max_rows')
 
     # plot
     logging.info('plot')
     f = plt.figure()
     f.set_figwidth(10)
     f.set_figheight(8)
-    plt.xticks(rotation=90)
     plt.xlabel('Date')
     plt.ylabel('Portfolio Value')
     stockline, = plt.plot(worthdf['TimeStamp'], worthdf['stock_value'], label='stock')
     totalline, = plt.plot(worthdf['TimeStamp'], worthdf['value'], label='stock+dividend')
+    xticks, _ = plt.xticks(rotation=90)
+    step = len(xticks) // 10
+    plt.xticks(xticks[::step])
     plt.legend([stockline, totalline], ['stock', 'stock+dividend'])
     plt.savefig(imgfilepath)
 
