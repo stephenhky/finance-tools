@@ -17,14 +17,14 @@ def generate_filename():
     return '{}_{}'.format(timestr, name)
 
 
-def construct_portfolio(portdict, startdate):
+def construct_portfolio(portdict, startdate, enddate):
     if portdict.get('name', '') == 'DynamicPortfolio':
         return DynamicPortfolioWithDividends.load_from_dict(portdict)
     else:
         return DynamicPortfolioWithDividends({
             'date': startdate,
             'portfolio': Portfolio(portdict)
-        })
+        }, enddate)
 
 
 def plot_handler(event, context):
@@ -48,7 +48,7 @@ def plot_handler(event, context):
 
     # generate pandas dataframe
     logging.info('Calculating worth over time')
-    portfolio = construct_portfolio(query['components'], startdate)
+    portfolio = construct_portfolio(query['components'], startdate, enddate)
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
     # pd.set_option('display.max_rows', len(worthdf))
     # print(pd.DataFrame.from_records(portfolio.cashtimeseries))
@@ -90,6 +90,7 @@ def plot_handler(event, context):
         'url': 'https://{}.s3.amazonaws.com/{}'.format(s3_bucket, xlsxfilename),
         'response': xlsxresponse
     }
+    event['data'] = worthdf.to_dict(orient='records')
 
     # reference of a lambda output to API gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-output-format
     req_res = {
