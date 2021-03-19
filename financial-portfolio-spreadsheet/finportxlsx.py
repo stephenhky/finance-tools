@@ -2,17 +2,22 @@
 import logging
 import os
 import json
-import random
-from datetime import datetime
 
 import boto3
 import pandas as pd
 
 
+lambda_client = boto3.client('lambda')
+
+
 def generate_filename():
-    name = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz', k=20))
-    timestr = datetime.strftime(datetime.utcnow(), '%Y%m%d%H%M%SUTC%z')
-    return '{}_{}'.format(timestr, name)
+    response = lambda_client.invoke(
+        FunctionName='arn:aws:lambda:us-east-1:409029738116:function:generate_filename',
+        InvocationType='RequestResponse',
+        Payload=json.dumps("")
+    )
+    response_payload = json.load(response['Payload'])
+    return response_payload['body']
 
 
 def spreadsheet_handler(event, context):
