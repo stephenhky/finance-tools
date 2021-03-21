@@ -67,14 +67,18 @@ def lambda_handler(event, context):
     send_email(sender_email, user_email, "Portfolio Optimization - Computation Started", notification_email_body)
 
     query['filebasename'] = filebasename
+    query['sender_email'] = sender_email
 
     lambda_client.invoke(
-        FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-overseer',
+        FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing',
         InvocationType='Event',
         Payload=json.dumps({'body': query})
     )
 
+    reply = query.copy()
+    reply['email_body'] = notification_email_body
+
     return {
         'statusCode': 200,
-        'body': json.dumps('Hello from Lambda!')
+        'body': json.dumps(reply)
     }
