@@ -138,13 +138,14 @@ def simulated_annealing(
 
 def simulated_annealing_handler(event, context):
     # parsing argument
-    query = json.loads(event['body'])
+    query = event['body']
     startdate = query['startdate']
     enddate = query['enddate']
     maxval = query['maxval']
     symbols = query['symbols']
     nbsteps = query.get('nbsteps', 10000)
     init_temperature = query.get('init_temperature', 1000.)
+    decfactor = query.get('decfactor', 0.75)
     temperaturechange_step = query.get('temperaturechange_step', 100)
     with_dividends = query.get('with_dividends', True)
     lambda1 = query.get('lambda1', 0.3)
@@ -187,7 +188,7 @@ def simulated_annealing_handler(event, context):
         lambda1,
         lambda2,
         initT=init_temperature,
-        factor=0.75,
+        factor=decfactor,
         nbsteps=nbsteps,
         temperaturechangestep=temperaturechange_step,
         cacheddir=cacheddir,
