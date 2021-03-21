@@ -1,7 +1,6 @@
 
 import logging
 import json
-import os
 from datetime import datetime
 import time
 
@@ -10,6 +9,8 @@ from finsim.portfolio import DynamicPortfolioWithDividends, DynamicPortfolio
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
 from finsim.data.preader import get_symbol_closing_price, get_yahoofinance_data
+import boto3
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -151,6 +152,11 @@ def simulated_annealing_handler(event, context):
     lambda1 = query.get('lambda1', 0.3)
     lambda2 = query.get('lambda2', 0.01)
     indexsymbol = query.get('index', 'DJI')
+    call_wrapper = False
+    if 'email' in query:
+        assert 'sender_email' in query
+        assert 'filebasename' in query
+        call_wrapper = True
 
     # making caching directory
     cacheddir = '/tmp/cacheddir'
@@ -219,6 +225,15 @@ def simulated_annealing_handler(event, context):
         'portfolio': optimized_dynport.generate_dynamic_portfolio_dict(),
         'runtime': endtime-starttime
     }
+
+    if call_wrapper:
+        lambda_client = boto3.client('lambda')
+        lambda_client.invoke(
+            FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-wrapper',
+            InvocationType='Event',
+            Payload=json.dumps({'body': {'query': query, 'result': result}})
+        )
+
     return {
         'statusCode': 200,
         'body': json.dumps(result)
