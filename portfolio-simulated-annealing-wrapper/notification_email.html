@@ -1,0 +1,51 @@
+<html>
+    <head></head>
+    <body>
+      <h1>Portfolio Optimization Computation Started</h1>
+          <p>
+              The optimization for the financial portfolio with the following symbols
+              have been finsihed: {symbols:}. It takes {runtime:} seconds to run.
+          </p>
+          <p>
+              The optimization is based on the prices between {startdate:} and {enddate:},
+              with maximum total value of the portfolio being USD${maxval:}. The components
+              of this portfolio should look like this:
+          </p>
+          <p>
+              {string_components_portfolio:}
+          </p>
+          <p>
+              The performance of this portfolio is as follow:
+              <ul>
+                 <li>Yield: {r:}</li>
+                 <li>Volatility: {sigma:}</li>
+                 <li>Downside risk: {downside_risk:}</li>
+                 <li>Upside risk: {upside_risk:}</li>
+                 <li>beta (with respect to {indexsymbol:}): {beta:}</li>
+              </ul>
+          </p>
+          <p>
+              The graph and the spreadsheet of the overall performance of this portfolio
+              from {startdate:} and {enddate:} can be downloaded through the following URLs:
+              <ul>
+                <li>Graph: </li>
+                <li>Spreadsheet: </li>
+              </ul>
+              Note that the links will expire 24 hours after this e-mail is sent.
+          </p>
+          <p>
+              Other parameters for the computation using simulated annealing:
+              <ul>
+                <li>Number of steps: {nbsteps:}</li>
+                <li>Initial temperature: {init_temperature:} (temperature decrease every {temperaturechange_step:} by a factor {decfactor:})</li>
+                <li>Income from dividends considered: {with_dividends:}</li>
+                <li>lambda1 (regularization with volatility): {lambda1:}</li>
+                <li>lambda2 (regularization with uniformity): {lambda2:}</li>
+                <li>beta computed with respect to {indexsymbol:}</li>
+              </ul>
+          </p>
+          <p>
+              An e-mail will be sent to this e-mail address once the computation is completed.
+          </p>
+    </body>
+    </html>
