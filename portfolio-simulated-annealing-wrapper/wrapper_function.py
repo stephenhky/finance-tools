@@ -22,8 +22,10 @@ def send_email(sender_email, recipient_email, subject, html):
 
 def lambda_handler(event, context):
     # parsing argument
-    query = event['body']['query']
-    result = event['body']['result']
+    eventbody = json.loads(event['body'])
+    print(eventbody)
+    query = eventbody['query']
+    result = eventbody['result']
     startdate = query['startdate']
     enddate = query['enddate']
     maxval = query['maxval']
@@ -53,14 +55,23 @@ def lambda_handler(event, context):
     response = lambda_client.invoke(
         FunctionName='arn:aws:lambda:us-east-1:409029738116:function:finportplot',
         InvocationType='RequestResponse',
-        Payload=json.dumps({'body': json.dumps(portfolio_dict)})
+        Payload=json.dumps({'body': json.dumps({
+            'startdate': startdate,
+            'enddate': enddate,
+            'components': portfolio_dict
+        })})
     )
     finportplot_response_payload = json.load(response['Payload'])
     print(finportplot_response_payload)
-    image_url = finportplot_response_payload['body']['plot']['url']
-    xlsx_url = finportplot_response_payload['body']['spreadsheet']['url']
+    finportplot_body = json.loads(finportplot_response_payload['body'])
+    image_url = finportplot_body['plot']['url']
+    xlsx_url = finportplot_body['spreadsheet']['url']
 
     # sending e-mail
+    string_components_portfolio = '\n'.format([
+        '{}\t{}'.format(symbol, nbshares)
+        for symbol, nbshares in portfolio_dict['timeseries'][0]['portfolio'].items()
+    ])
     notification_email_body = open('notification_email.html', 'r').read().format(
         symbols=', '.format(symbols),
         startdate=startdate,
@@ -82,7 +93,8 @@ def lambda_handler(event, context):
         runtime=runtime,
         image_url=image_url,
         xlsx_url=xlsx_url,
-        filebasename=filebasename
+        filebasename=filebasename,
+        string_components_portfolio=string_components_portfolio
     )
 
     send_email(sender_email, user_email, "Portfolio Optimization - Computation Result", notification_email_body)
