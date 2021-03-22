@@ -1,4 +1,5 @@
 
+import os
 import json
 
 import boto3
@@ -20,7 +21,20 @@ def send_email(sender_email, recipient_email, subject, html):
     )
 
 
+def convert_portfolio_to_table(portfolio_dict):
+    html_string = '<table style="width:100%">'
+    html_string += '<tr><th>Symbol</th><th>Number of Shares</th>'
+    for symbol, nbshares in portfolio_dict['timeseries'][0]['portfolio'].items():
+        html_string += '<tr><th>{}</th><th>{}</th></tr>'.format(symbol, nbshares)
+
+    html_string += '</table>'
+    return html_string
+
+
 def lambda_handler(event, context):
+    # getting config
+    config = json.load(open('config.json', 'r'))
+
     # parsing argument
     eventbody = json.loads(event['body'])
     print(eventbody)
@@ -68,10 +82,7 @@ def lambda_handler(event, context):
     xlsx_url = finportplot_body['spreadsheet']['url']
 
     # sending e-mail
-    string_components_portfolio = '\n'.format([
-        '{}\t{}'.format(symbol, nbshares)
-        for symbol, nbshares in portfolio_dict['timeseries'][0]['portfolio'].items()
-    ])
+    string_components_portfolio = convert_portfolio_to_table(portfolio_dict)
     notification_email_body = open('notification_email.html', 'r').read().format(
         symbols=', '.format(symbols),
         startdate=startdate,
@@ -99,9 +110,17 @@ def lambda_handler(event, context):
 
     send_email(sender_email, user_email, "Portfolio Optimization - Computation Result", notification_email_body)
 
-    event['email_body'] = notification_email_body
+    # making json to S3
+    eventbody['email_body'] = notification_email_body
+    eventbody['portfolio_values_over_time'] = finportplot_body['data']
+    jsonname = '{}.json'.format(filebasename)
+    jsonpath = os.path.join('/', 'tmp', jsonname)
+    json.dump(eventbody, open(jsonpath, 'w'))
+    s3_bucket = config['bucket']
+    s3_client = boto3.client('s3')
+    jsonresponse = s3_client.upload_file(jsonpath, s3_bucket, jsonname)
 
     return {
         'statusCode': 200,
-        'body': json.dumps(event)
+        'body': json.dumps(eventbody)
     }
