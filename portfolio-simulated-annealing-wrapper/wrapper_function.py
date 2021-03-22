@@ -53,11 +53,12 @@ def lambda_handler(event, context):
     response = lambda_client.invoke(
         FunctionName='arn:aws:lambda:us-east-1:409029738116:function:finportplot',
         InvocationType='RequestResponse',
-        Payload=json.dumps(portfolio_dict)
+        Payload=json.dumps({'body': json.dumps(portfolio_dict)})
     )
     finportplot_response_payload = json.load(response['Payload'])
-    image_url = finportplot_response_payload['plot']['url']
-    xlsx_url = finportplot_response_payload['spreadsheet']['url']
+    print(finportplot_response_payload)
+    image_url = finportplot_response_payload['body']['plot']['url']
+    xlsx_url = finportplot_response_payload['body']['spreadsheet']['url']
 
     # sending e-mail
     notification_email_body = open('notification_email.html', 'r').read().format(
@@ -84,4 +85,11 @@ def lambda_handler(event, context):
         filebasename=filebasename
     )
 
-    send_email(sender_email, user_email, "", notification_email_body)
+    send_email(sender_email, user_email, "Portfolio Optimization - Computation Result", notification_email_body)
+
+    event['email_body'] = notification_email_body
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps(event)
+    }

@@ -231,7 +231,7 @@ def simulated_annealing_handler(event, context):
         lambda_client.invoke(
             FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-wrapper',
             InvocationType='Event',
-            Payload=json.dumps({'body': {'query': query, 'result': result}})
+            Payload=json.dumps({'body': json.dumps({'query': query, 'result': result})})
         )
 
     return {

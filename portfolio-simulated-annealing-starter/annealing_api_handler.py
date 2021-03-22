@@ -61,11 +61,20 @@ def lambda_handler(event, context):
         with_dividends='Yes' if with_dividends else 'No',
         lambda1=lambda1,
         lambda2=lambda2,
-        indexsymbol=indexsymbol
+        indexsymbol=indexsymbol,
+        filebasename=filebasename
     )
 
     send_email(sender_email, user_email, "Portfolio Optimization - Computation Started", notification_email_body)
 
+    query['nbsteps'] = nbsteps
+    query['init_temperature'] = init_temperature
+    query['decfactor'] = decfactor
+    query['temperaturechange_step'] = temperaturechange_step
+    query['with_dividends'] = with_dividends
+    query['lambda1'] = lambda1
+    query['lambda2'] = lambda2
+    query['index'] = indexsymbol
     query['filebasename'] = filebasename
     query['sender_email'] = sender_email
 
