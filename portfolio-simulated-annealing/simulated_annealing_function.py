@@ -5,137 +5,16 @@ from datetime import datetime
 import time
 
 import numpy as np
-from finsim.portfolio import DynamicPortfolioWithDividends, DynamicPortfolio
+from finsim.portfolio import DynamicPortfolioWithDividends
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
-from finsim.data.preader import get_symbol_closing_price, get_yahoofinance_data
+from finsim.data.preader import get_yahoofinance_data
 import boto3
+from portfolio_annealing import simulated_annealing, rewards
 
-
-logging.basicConfig(level=logging.INFO)
-
-
-def rewards(port, startdate, enddate, maxval, lambda1, lambda2, cacheddir=None):
-    df = port.get_portfolio_values_overtime(startdate, enddate, cacheddir=cacheddir)
-    prices = np.array(df['value'])
-    timestamps = np.array(df['TimeStamp'], dtype='datetime64[s]')
-
-    r, sigma = fit_BlackScholesMerton_model(timestamps, prices)
-
-    eachsymbol_prices = {
-        symbol: nbshares*get_symbol_closing_price(symbol, enddate, cacheddir=cacheddir)
-        for symbol, nbshares in port.symbols_nbshares.items()
-    }
-    totalprices = np.sum([val for val in eachsymbol_prices.values()])
-    entropy = np.sum([
-        val * (np.log(totalprices/val)) if val > 0 else 0.
-        for val in eachsymbol_prices.values()
-    ])
-    entropy /= totalprices
-
-    reward = r - lambda1*sigma + lambda2 * entropy / np.log(len(eachsymbol_prices)) + totalprices / maxval
-    return reward
-
-
-def randomly_rebalance_portfolio(orig_dynport, maxvalue, with_dividends=True):
-    dynport_class = DynamicPortfolioWithDividends if with_dividends else DynamicPortfolio
-    assert isinstance(orig_dynport, DynamicPortfolio)
-    if not with_dividends:
-        assert not isinstance(orig_dynport, DynamicPortfolioWithDividends)
-    assert len(orig_dynport.timeseries) == 1
-
-    olddynportdict = orig_dynport.generate_dynamic_portfolio_dict()
-    startdate = orig_dynport.timeseries[0]['date']
-    currentdate = orig_dynport.current_date
-    cacheddir = orig_dynport.cacheddir
-    dynport = dynport_class(orig_dynport.symbols_nbshares, startdate, cacheddir=cacheddir)
-
-    buy_stocks = {}
-    sell_stocks = {}
-
-    rndnum = np.random.uniform()
-    if rndnum < 0.33333:
-        symbol_to_buy = np.random.choice(list(dynport.symbols_nbshares.keys()))
-        buy_stocks[symbol_to_buy] = 1
-    elif rndnum < 0.66667:
-        symbol_to_sell = np.random.choice(list(dynport.symbols_nbshares.keys()))
-        if dynport.symbols_nbshares[symbol_to_sell] >= 1:
-            sell_stocks[symbol_to_sell] = 1
-    else:
-        symbols_to_exchange = np.random.choice(list(dynport.symbols_nbshares.keys()), 2)
-        symbol_to_sell, symbol_to_buy = symbols_to_exchange
-        selling_symbol_price = get_symbol_closing_price(symbol_to_sell, currentdate, cacheddir=cacheddir)
-        buying_symbol_price = get_symbol_closing_price(symbol_to_buy, currentdate, cacheddir=cacheddir)
-
-        if 0.5 < selling_symbol_price / buying_symbol_price < 2:
-            sell_stocks[symbol_to_sell] = 1
-            buy_stocks[symbol_to_buy] = 1
-        elif selling_symbol_price / buying_symbol_price <= 0.5:
-            sell_stocks[symbol_to_sell] = 1
-            buy_stocks[symbol_to_buy] = selling_symbol_price / buying_symbol_price
-        elif selling_symbol_price / buying_symbol_price >= 2:
-            sell_stocks[symbol_to_sell] = 1
-            buy_stocks[symbol_to_buy] = int(selling_symbol_price / buying_symbol_price)
-        else:
-            pass
-
-    for symbol in sell_stocks:
-        if dynport.symbols_nbshares[symbol] <= 0:
-            return orig_dynport
-
-    dynport.trade(currentdate, buy_stocks=buy_stocks, sell_stocks=sell_stocks)
-    value = dynport.get_portfolio_value(currentdate)
-    if value > maxvalue:
-        dynport = dynport_class.load_from_dict(olddynportdict, cacheddir=cacheddir)
-        dynport.move_cursor_to_date(currentdate)
-    else:
-        dynport = dynport_class(dynport.symbols_nbshares, startdate, cacheddir=cacheddir)
-        dynport.move_cursor_to_date(currentdate)
-    return dynport
-
-
-def simulated_annealing(
-        dynport,
-        startdate,
-        enddate,
-        maxval,
-        lambda1,
-        lambda2,
-        initT=1000,
-        factor=0.75,
-        nbsteps=10000,
-        temperaturechangestep=100,
-        cacheddir=None,
-        with_dividends=True
-):
-    olddynport = dynport
-    olddynport_reward = rewards(olddynport, startdate, enddate, maxval, lambda1, lambda2, cacheddir=cacheddir)
-    temperature = initT
-    for step in range(nbsteps):
-        if step % temperaturechangestep == 0 and step > 0:
-            temperature *= factor
-            logging.info('Step {}'.format(step))
-            logging.info('Temperature: {}'.format(temperature))
-            logging.info('Reward: {}'.format(olddynport_reward))
-            logging.info(olddynport.symbols_nbshares)
-
-        newdynport = randomly_rebalance_portfolio(olddynport, maxval, with_dividends=with_dividends)
-
-        if olddynport == newdynport:
-            continue
-
-        newdynport_reward = rewards(newdynport, startdate, enddate, maxval, lambda1, lambda2, cacheddir=cacheddir)
-
-        if newdynport_reward <= olddynport_reward:
-            continue
-        else:
-            rndnum = np.random.uniform()
-            if rndnum < np.exp((newdynport_reward - olddynport_reward) / temperaturechangestep):
-                olddynport = newdynport
-                olddynport_reward = newdynport_reward
-
-    return olddynport
-
+# Note: decoupling the modeling code and the Lambda function code that calls it
+#       the file portfolio_annealing.py is an EXACT COPY of the model training code
+#       in another repository
 
 def simulated_annealing_handler(event, context):
     # parsing argument
