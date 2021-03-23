@@ -84,7 +84,7 @@ def lambda_handler(event, context):
     # sending e-mail
     string_components_portfolio = convert_portfolio_to_table(portfolio_dict)
     notification_email_body = open('notification_email.html', 'r').read().format(
-        symbols=', '.format(symbols),
+        symbols=', '.join(symbols),
         startdate=startdate,
         enddate=enddate,
         maxval=maxval,

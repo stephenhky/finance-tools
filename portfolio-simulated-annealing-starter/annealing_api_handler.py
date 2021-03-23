@@ -50,7 +50,7 @@ def lambda_handler(event, context):
     sender_email = 'finportlag@gmail.com'
 
     notification_email_body = open('notification_email.html', 'r').read().format(
-        symbols=', '.format(symbols),
+        symbols=', '.join(symbols),
         startdate=startdate,
         enddate=enddate,
         maxval=maxval,
