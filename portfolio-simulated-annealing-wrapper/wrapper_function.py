@@ -1,6 +1,7 @@
 
 import os
 import json
+from operator import itemgetter
 
 import boto3
 
@@ -24,8 +25,11 @@ def send_email(sender_email, recipient_email, subject, html):
 def convert_portfolio_to_table(portfolio_dict):
     html_string = '<table style="width:100%">'
     html_string += '<tr><th>Symbol</th><th>Number of Shares</th>'
-    for symbol, nbshares in portfolio_dict['timeseries'][0]['portfolio'].items():
-        html_string += '<tr><th>{}</th><th>{}</th></tr>'.format(symbol, nbshares)
+    for symbol, nbshares in sorted(
+        portfolio_dict['timeseries'][0]['portfolio'].items(),
+        key=itemgetter(0)
+    ):
+        html_string += "<tr><th><a href='https://finance.yahoo.com/quote/{symbol:}/'>{symbol:}</a></th><th>{nbshares:}</th></tr>".format(symbol=symbol, nbshares=nbshares)
 
     html_string += '</table>'
     return html_string
@@ -61,6 +65,9 @@ def lambda_handler(event, context):
     upside_risk = result['upside_risk']
     beta = result['beta']
     runtime = result['runtime']
+
+    runtime_minutes = int(runtime // 60)
+    runtime_seconds = runtime % 60
 
     # resulting portfolio
     portfolio_dict = result['portfolio']
@@ -101,7 +108,8 @@ def lambda_handler(event, context):
         downside_risk=downside_risk,
         upside_risk=upside_risk,
         beta=beta,
-        runtime=runtime,
+        runtime_minutes=runtime_minutes,
+        runtime_seconds=runtime_seconds,
         image_url=image_url,
         xlsx_url=xlsx_url,
         filebasename=filebasename,

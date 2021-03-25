@@ -4,11 +4,12 @@
       <h1>Portfolio Optimization Computation Result</h1>
           <p>
               The optimization for the financial portfolio with the following symbols
-              have been finsihed: {symbols:}. It takes {runtime:} seconds to run.
+              have been finsihed: {symbols:}. It takes {runtime_minutes:d} minute(s) and
+              {runtime_seconds:.2f} seconds to run.
           </p>
           <p>
               The optimization is based on the prices between {startdate:} and {enddate:},
-              with maximum total value of the portfolio being USD${maxval:}. The components
+              with maximum total value of the portfolio being USD${maxval:.2f}. The components
               of this portfolio should look like this:
           </p>
           <p>
@@ -17,11 +18,11 @@
           <p>
               The performance of this portfolio is as follow:
               <ul>
-                 <li>Yield: {r:}</li>
-                 <li>Volatility: {sigma:}</li>
-                 <li>Downside risk: {downside_risk:}</li>
-                 <li>Upside risk: {upside_risk:}</li>
-                 <li>beta (with respect to {indexsymbol:}): {beta:}</li>
+                 <li>Yield: {r:.5f}</li>
+                 <li>Volatility: {sigma:.5f}</li>
+                 <li>Downside risk: {downside_risk:.5f}</li>
+                 <li>Upside risk: {upside_risk:.5f}</li>
+                 <li>beta (with respect to {indexsymbol:}): {beta:.4f}</li>
               </ul>
           </p>
           <p>
@@ -39,7 +40,7 @@
               Other parameters for the computation using simulated annealing:
               <ul>
                 <li>Number of steps: {nbsteps:}</li>
-                <li>Initial temperature: {init_temperature:} (temperature decrease every {temperaturechange_step:} by a factor {decfactor:})</li>
+                <li>Initial temperature: {init_temperature:.1f} (temperature decrease every {temperaturechange_step:} by a factor {decfactor:})</li>
                 <li>Income from dividends considered: {with_dividends:}</li>
                 <li>lambda1 (regularization with volatility): {lambda1:}</li>
                 <li>lambda2 (regularization with uniformity): {lambda2:}</li>
