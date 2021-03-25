@@ -77,11 +77,12 @@ def randomly_rebalance_portfolio(orig_dynport, maxvalue, with_dividends=True):
         else:
             pass
 
+    dynport.trade(currentdate, buy_stocks=buy_stocks, sell_stocks=sell_stocks)
+
     for symbol in sell_stocks:
         if dynport.symbols_nbshares[symbol] <= 0:
             return orig_dynport
 
-    dynport.trade(currentdate, buy_stocks=buy_stocks, sell_stocks=sell_stocks)
     value = dynport.get_portfolio_value(currentdate)
     if value > maxvalue:
         dynport = dynport_class.load_from_dict(olddynportdict, cacheddir=cacheddir)
