@@ -2,6 +2,7 @@
 import logging
 import argparse
 from datetime import datetime
+from functools import partial
 
 import numpy as np
 from finsim.portfolio import DynamicPortfolioWithDividends, DynamicPortfolio
@@ -13,12 +14,13 @@ from finsim.data.preader import get_symbol_closing_price, get_yahoofinance_data
 logging.basicConfig(level=logging.INFO)
 
 
-def rewards(port, startdate, enddate, maxval, lambda1, lambda2, cacheddir=None):
+def rewards(port, startdate, enddate, maxval, lambda1, lambda2, lambda3, cacheddir=None):
     df = port.get_portfolio_values_overtime(startdate, enddate, cacheddir=cacheddir)
     prices = np.array(df['value'])
     timestamps = np.array(df['TimeStamp'], dtype='datetime64[s]')
 
     r, sigma = fit_BlackScholesMerton_model(timestamps, prices)
+    downside_risk = estimate_downside_risk(timestamps, prices, 0.)
 
     eachsymbol_prices = {
         symbol: nbshares*get_symbol_closing_price(symbol, enddate, cacheddir=cacheddir)
@@ -31,7 +33,11 @@ def rewards(port, startdate, enddate, maxval, lambda1, lambda2, cacheddir=None):
     ])
     entropy /= totalprices
 
-    reward = r - lambda1*sigma + lambda2 * entropy / np.log(len(eachsymbol_prices)) + totalprices / maxval
+    reward = r \
+             - lambda1*sigma \
+             + lambda2 * entropy / np.log(len(eachsymbol_prices)) \
+             - lambda3 * downside_risk \
+             + totalprices / maxval
     return reward
 
 
@@ -95,20 +101,16 @@ def randomly_rebalance_portfolio(orig_dynport, maxvalue, with_dividends=True):
 
 def simulated_annealing(
         dynport,
-        startdate,
-        enddate,
+        rewardfcn,
         maxval,
-        lambda1,
-        lambda2,
         initT=1000,
         factor=0.75,
         nbsteps=10000,
         temperaturechangestep=100,
-        cacheddir=None,
         with_dividends=True
 ):
     olddynport = dynport
-    olddynport_reward = rewards(olddynport, startdate, enddate, maxval, lambda1, lambda2, cacheddir=cacheddir)
+    olddynport_reward = rewardfcn(olddynport)
     temperature = initT
     for step in range(nbsteps):
         if step % temperaturechangestep == 0 and step > 0:
@@ -123,7 +125,7 @@ def simulated_annealing(
         if olddynport == newdynport:
             continue
 
-        newdynport_reward = rewards(newdynport, startdate, enddate, maxval, lambda1, lambda2, cacheddir=cacheddir)
+        newdynport_reward = rewardfcn(newdynport)
 
         if newdynport_reward <= olddynport_reward:
             continue
@@ -149,6 +151,7 @@ def get_argparser():
     argparser.add_argument('--cacheddir', default=None, help='cached directory for symbols')
     argparser.add_argument('--lambda1', default=0.3, type=float, help='risk tolerance (default: 0.3)')
     argparser.add_argument('--lambda2', default=0.01, type=float, help='uniformity constant (default: 0.01)')
+    argparser.add_argument('--lambda3', default=0.0, type=float, help='downside risk tolerance (default: 0.0)')
     argparser.add_argument('--index', default='DJI', help='index to calculate beta (default: DJI)')
     return argparser
 
@@ -167,6 +170,7 @@ if __name__ == '__main__':
     cacheddir = args.cacheddir
     lambda1 = args.lambda1
     lambda2 = args.lambda2
+    lambda3 = args.lambda3
     indexsymbol = args.index
 
     logging.info('Portfolio Optimization Using Simulated Annealing')
@@ -190,18 +194,22 @@ if __name__ == '__main__':
         raise ValueError('Too many symbols (or maximum portfolio value too small). Value ({}) > maxval ({})'.format(current_val, maxval))
 
     # simulated annealing
+    rewardfcn = partial(rewards,
+                        startdate=startdate,
+                        enddate=enddate,
+                        maxval=maxval,
+                        lambda1=lambda1,
+                        lambda2=lambda2,
+                        lambda3=lambda3,
+                        cacheddir=cacheddir)
     optimized_dynport = simulated_annealing(
         dynport,
-        startdate,
-        enddate,
+        rewardfcn,
         maxval,
-        lambda1,
-        lambda2,
         initT=init_temperature,
         factor=0.75,
         nbsteps=nbsteps,
         temperaturechangestep=temperaturechange_step,
-        cacheddir=cacheddir,
         with_dividends=True
     )
 
@@ -211,7 +219,7 @@ if __name__ == '__main__':
         print('{}: {}'.format(symbol, nbshares))
 
     # further imformation
-    print('reward function: {}'.format(rewards(optimized_dynport, startdate, enddate, maxval, lambda1, lambda2, cacheddir=cacheddir)))
+    print('reward function: {}'.format(rewardfcn(optimized_dynport)))
     df = optimized_dynport.get_portfolio_values_overtime(startdate, enddate, cacheddir=cacheddir)
     # df['TimeStamp'] = df['TimeStamp'].map(lambda item: datetime.strftime(item, '%Y-%m-%d'))
     indexdf = get_yahoofinance_data(indexsymbol, startdate, enddate, cacheddir=cacheddir)

@@ -57,6 +57,7 @@ def lambda_handler(event, context):
     with_dividends = query['with_dividends']
     lambda1 = query['lambda1']
     lambda2 = query['lambda2']
+    lambda3 = query['lambda3']
     indexsymbol = query['index']
     user_email = query['email']
     filebasename = query['filebasename']
@@ -104,6 +105,7 @@ def lambda_handler(event, context):
         with_dividends='Yes' if with_dividends else 'No',
         lambda1=lambda1,
         lambda2=lambda2,
+        lambda3=lambda3,
         indexsymbol=indexsymbol,
         r=r,
         annual_yield=100*(exp(r)-1),

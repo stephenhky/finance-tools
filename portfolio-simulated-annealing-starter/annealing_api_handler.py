@@ -44,6 +44,7 @@ def lambda_handler(event, context):
     with_dividends = query.get('with_dividends', True)
     lambda1 = query.get('lambda1', 0.3)
     lambda2 = query.get('lambda2', 0.01)
+    lambda3 = query.get('lambda3', 0.0)
     indexsymbol = query.get('index', 'DJI')
     user_email = query['email']
     filebasename = generate_filename()
@@ -61,6 +62,7 @@ def lambda_handler(event, context):
         with_dividends='Yes' if with_dividends else 'No',
         lambda1=lambda1,
         lambda2=lambda2,
+        lambda3=lambda3,
         indexsymbol=indexsymbol,
         filebasename=filebasename
     )
@@ -74,6 +76,7 @@ def lambda_handler(event, context):
     query['with_dividends'] = with_dividends
     query['lambda1'] = lambda1
     query['lambda2'] = lambda2
+    query['lambda3'] = lambda3
     query['index'] = indexsymbol
     query['filebasename'] = filebasename
     query['sender_email'] = sender_email

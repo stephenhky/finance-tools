@@ -3,6 +3,7 @@ import logging
 import json
 from datetime import datetime
 import time
+from functools import partial
 
 import numpy as np
 from finsim.portfolio import DynamicPortfolioWithDividends
@@ -30,6 +31,7 @@ def simulated_annealing_handler(event, context):
     with_dividends = query.get('with_dividends', True)
     lambda1 = query.get('lambda1', 0.3)
     lambda2 = query.get('lambda2', 0.01)
+    lambda3 = query.get('lambda3', 0.0)
     indexsymbol = query.get('index', 'DJI')
     call_wrapper = False
     if 'email' in query:
@@ -51,6 +53,7 @@ def simulated_annealing_handler(event, context):
     logging.info('Cached directory: {}'.format(cacheddir))
     logging.info('lambda1: {}'.format(lambda1))
     logging.info('lambda2: {}'.format(lambda2))
+    logging.info('lambda3: {}'.format(lambda3))
     logging.info('indexsymbol: {}'.format(indexsymbol))
 
     # initializing the porfolio
@@ -65,23 +68,27 @@ def simulated_annealing_handler(event, context):
 
     # simulated annealing
     starttime = time.time()
+    rewardfcn = partial(rewards,
+                        startdate=startdate,
+                        enddate=enddate,
+                        maxval=maxval,
+                        lambda1=lambda1,
+                        lambda2=lambda2,
+                        lambda3=lambda3,
+                        cacheddir=cacheddir)
     optimized_dynport = simulated_annealing(
         dynport,
-        startdate,
-        enddate,
+        rewardfcn,
         maxval,
-        lambda1,
-        lambda2,
         initT=init_temperature,
-        factor=decfactor,
+        factor=0.75,
         nbsteps=nbsteps,
         temperaturechangestep=temperaturechange_step,
-        cacheddir=cacheddir,
         with_dividends=True
     )
     endtime = time.time()
 
-    logging.info('final reward function: {}'.format(rewards(optimized_dynport, startdate, enddate, maxval, lambda1, lambda2, cacheddir=cacheddir)))
+    logging.info('final reward function: {}'.format(rewardfcn(optimized_dynport)))
     df = optimized_dynport.get_portfolio_values_overtime(startdate, enddate, cacheddir=cacheddir)
     indexdf = get_yahoofinance_data(indexsymbol, startdate, enddate, cacheddir=cacheddir)
     indexdf['TimeStamp'] = indexdf['TimeStamp'].map(lambda item: datetime.strftime(item, '%Y-%m-%d'))
