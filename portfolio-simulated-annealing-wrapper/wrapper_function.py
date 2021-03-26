@@ -2,6 +2,8 @@
 import os
 import json
 from operator import itemgetter
+import logging
+from math import exp
 
 import boto3
 
@@ -41,7 +43,7 @@ def lambda_handler(event, context):
 
     # parsing argument
     eventbody = json.loads(event['body'])
-    print(eventbody)
+    logging.info(eventbody)
     query = eventbody['query']
     result = eventbody['result']
     startdate = query['startdate']
@@ -83,7 +85,7 @@ def lambda_handler(event, context):
         })})
     )
     finportplot_response_payload = json.load(response['Payload'])
-    print(finportplot_response_payload)
+    logging.info(finportplot_response_payload)
     finportplot_body = json.loads(finportplot_response_payload['body'])
     image_url = finportplot_body['plot']['url']
     xlsx_url = finportplot_body['spreadsheet']['url']
@@ -91,7 +93,7 @@ def lambda_handler(event, context):
     # sending e-mail
     string_components_portfolio = convert_portfolio_to_table(portfolio_dict)
     notification_email_body = open('notification_email.html', 'r').read().format(
-        symbols=', '.join(symbols),
+        symbols=', '.join(sorted(symbols)),
         startdate=startdate,
         enddate=enddate,
         maxval=maxval,
@@ -104,6 +106,7 @@ def lambda_handler(event, context):
         lambda2=lambda2,
         indexsymbol=indexsymbol,
         r=r,
+        annual_yield=100*(exp(r)-1),
         sigma=sigma,
         downside_risk=downside_risk,
         upside_risk=upside_risk,
