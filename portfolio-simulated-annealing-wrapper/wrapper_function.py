@@ -4,6 +4,7 @@ import json
 from operator import itemgetter
 import logging
 from math import exp
+import asyncio
 
 import boto3
 
@@ -24,14 +25,83 @@ def send_email(sender_email, recipient_email, subject, html):
     )
 
 
-def convert_portfolio_to_table(portfolio_dict):
+def convert_expreturn_to_annualreturn(r):  # in the units of year
+    return exp(r)-1
+
+
+async def extract_symbol_info(symbol, startdate, enddate):
+    response = lambda_client.invoke(
+        FunctionName='arn:aws:lambda:us-east-1:409029738116:function:fininfoestimate',
+        InvocationType='RequestResponse',
+        Payload=json.dumps({'body': json.dumps({
+            'symbol': symbol,
+            'startdate': startdate,
+            'enddate': enddate
+        })
+        })
+    )
+    response_payload = json.load(response['Payload'])
+    return json.loads(response_payload['body'])
+
+
+async def extract_symbols_info(symbols, startdate, enddate):
+    symbols_info = await asyncio.gather(*[
+            extract_symbol_info(symbol, startdate, enddate)
+            for symbol in symbols
+        ])
+    print(symbols_info)
+    symbols_info_dict = {info['symbol']: info for info in symbols_info}
+    return symbols_info_dict
+
+
+def convert_portfolio_to_table(portfolio_dict, startdate, enddate):
+    symbols_info_dict = asyncio.run(extract_symbols_info(
+        portfolio_dict['timeseries'][0]['portfolio'].keys(),
+        startdate,
+        enddate
+    ))
+    print(symbols_info_dict)
+
     html_string = '<table style="width:100%">'
-    html_string += '<tr><th>Symbol</th><th>Number of Shares</th>'
+    html_string += '<tr><th>Symbol</th>' + \
+                   '<th>Number of Shares</th>' + \
+                   '<th>Return Rate</th>' + \
+                   '<th>Volatility</th>' + \
+                   '<th>Downside Risk</th>' + \
+                   '<th>Upside Risk</th>' + \
+                   '<th>Record Start Date</th>' + \
+                   '<th>Record End Date</th>' + \
+                   '<th>Number of Records</th>' + \
+                   '</tr>'
+
+    row_html_template = "<tr><th><a href='https://finance.yahoo.com/quote/{symbol:}/'>{symbol:}</a></th>" + \
+                        "<th>{nbshares:}</th>" + \
+                        "<th>{r:.4f} (annual: {annual_r:.2f}%)</th>" + \
+                        "<th>{vol:.4f}</th>" + \
+                        "<th>{downsiderisk:.4f}</th>" + \
+                        "<th>{upsiderisk:.4f}</th>" + \
+                        "<th>{rec_startdate:}</th>" + \
+                        "<th>{rec_enddate:}</th>" + \
+                        "<th>{nbrecs:}</th>" + \
+                        "</tr>"
+
     for symbol, nbshares in sorted(
         portfolio_dict['timeseries'][0]['portfolio'].items(),
         key=itemgetter(0)
     ):
-        html_string += "<tr><th><a href='https://finance.yahoo.com/quote/{symbol:}/'>{symbol:}</a></th><th>{nbshares:}</th></tr>".format(symbol=symbol, nbshares=nbshares)
+
+        html_string += row_html_template.format(
+            symbol=symbol,
+            nbshares=nbshares,
+            r=symbols_info_dict[symbol]['r'],
+            annual_r=100*convert_expreturn_to_annualreturn(symbols_info_dict[symbol]['r']),
+            vol=symbols_info_dict[symbol]['vol'],
+            downsiderisk=symbols_info_dict[symbol]['downside_risk'],
+            upsiderisk=symbols_info_dict[symbol]['upside_risk'],
+            rec_startdate=symbols_info_dict[symbol]['data_startdate'],
+            rec_enddate=symbols_info_dict[symbol]['data_enddate'],
+            nbrecs=symbols_info_dict[symbol]['nbrecs']
+        )
 
     html_string += '</table>'
     return html_string
@@ -92,7 +162,7 @@ def lambda_handler(event, context):
     xlsx_url = finportplot_body['spreadsheet']['url']
 
     # sending e-mail
-    string_components_portfolio = convert_portfolio_to_table(portfolio_dict)
+    string_components_portfolio = convert_portfolio_to_table(portfolio_dict, startdate, enddate)
     notification_email_body = open('notification_email.html', 'r').read().format(
         symbols=', '.join(sorted(symbols)),
         startdate=startdate,
@@ -108,7 +178,7 @@ def lambda_handler(event, context):
         lambda3=lambda3,
         indexsymbol=indexsymbol,
         r=r,
-        annual_yield=100*(exp(r)-1),
+        annual_yield=100*convert_expreturn_to_annualreturn(r),
         sigma=sigma,
         downside_risk=downside_risk,
         upside_risk=upside_risk,
