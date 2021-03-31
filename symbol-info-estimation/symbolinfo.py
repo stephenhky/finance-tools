@@ -36,7 +36,7 @@ def symbol_handler(event, context):
     startdate = query['startdate']
     enddate = query['enddate']
     waittime = query.get('waittime', 1)
-    index = query.get('index', 'SPY')   # S&P 500 index as the base.
+    index = query.get('index', 'DJI')   # DJI index as the base.
 
     # getting stock data
     symdf = waiting_get_yahoofinance_data(symbol, startdate, enddate, waittime=waittime)
@@ -60,11 +60,16 @@ def symbol_handler(event, context):
         np.array(symdf.loc[~isrownull, 'Close']),
         0.0
     )
-    beta = estimate_beta(
-        np.array(symdf.loc[~isrownull, 'TimeStamp']),
-        np.array(symdf.loc[~isrownull, 'Close']),
-        np.array(indexdf.loc[~isrownull, 'Close']),
-    )
+    try:
+        beta = estimate_beta(
+            np.array(symdf.loc[~isrownull, 'TimeStamp']),
+            np.array(symdf.loc[~isrownull, 'Close']),
+            np.array(indexdf.loc[~isrownull, 'Close']),
+        )
+    except:
+        logging.warning('Index {} failed to be integrated.'.format(index))
+        beta = None
+
     estimations = {
         'symbol': symbol,
         'r': r,
