@@ -81,7 +81,7 @@ def simulated_annealing_handler(event, context):
         rewardfcn,
         maxval,
         initT=init_temperature,
-        factor=0.75,
+        factor=decfactor,
         nbsteps=nbsteps,
         temperaturechangestep=temperaturechange_step,
         with_dividends=True
