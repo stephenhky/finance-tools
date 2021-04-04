@@ -17,4 +17,4 @@ RUN pip install -r requirements.txt
 RUN pip install awslambdaric boto3
 
 ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
-CMD [ "finport.portfolio_handler" ]
+CMD [ "finport_mpt.portfolio_handler" ]
