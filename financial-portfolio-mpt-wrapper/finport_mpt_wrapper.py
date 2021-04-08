@@ -75,7 +75,7 @@ def convert_portfolio_to_table(portfolio_dict, startdate, enddate):
                    '</tr>'
 
     row_html_template = "<tr><th><a href='https://finance.yahoo.com/quote/{symbol:}/'>{symbol:}</a></th>" + \
-                        "<th>{nbshares:}</th>" + \
+                        "<th>{nbshares:.2f}</th>" + \
                         "<th>{r:.4f} (annual: {annual_r:.2f}%)</th>" + \
                         "<th>{vol:.4f}</th>" + \
                         "<th>{downsiderisk:.4f}</th>" + \
@@ -89,7 +89,6 @@ def convert_portfolio_to_table(portfolio_dict, startdate, enddate):
         portfolio_dict['timeseries'][0]['portfolio'].items(),
         key=itemgetter(0)
     ):
-
         html_string += row_html_template.format(
             symbol=symbol,
             nbshares=nbshares,
@@ -119,7 +118,7 @@ def lambda_handler(event, context):
     rf = query['rf']
     symbols = query['symbols']
     totalworth = query['totalworth']
-    # presetdate = query['presetdate']
+    presetdate = query['presetdate']
     startdate = query['estimating_startdate']
     enddate = query['estimating_enddate']
     riskcoef = query['riskcoef']
@@ -129,22 +128,33 @@ def lambda_handler(event, context):
     user_email = query['email']
     filebasename = query['filebasename']
     sender_email = query['sender_email']
-    portfolio_dict = result['portfolio']
+    portfolio = result['portfolio']
+    print(portfolio)
     symbols_nbshares = result['symbols_nbshares']
+    print(symbols_nbshares)
     runtime = result['runtime']
 
     runtime_minutes = int(runtime // 60)
     runtime_seconds = runtime % 60
 
+    # constructing dynamic portfolio payload
+    portfolio_dict = {
+        'startdate': startdate,
+        'enddate': enddate,
+        'components': {
+            'name': 'DynamicPortfolio',
+            'current_date': presetdate,
+            'timeseries': [
+                {'date': startdate, 'portfolio': symbols_nbshares}
+            ]
+        }
+    }
+
     # plot
     response = lambda_client.invoke(
         FunctionName='arn:aws:lambda:us-east-1:409029738116:function:finportplot',
         InvocationType='RequestResponse',
-        Payload=json.dumps({'body': json.dumps({
-            'startdate': startdate,
-            'enddate': enddate,
-            'components': portfolio_dict
-        })})
+        Payload=json.dumps({'body': json.dumps(portfolio_dict)})
     )
     finportplot_response_payload = json.load(response['Payload'])
     logging.info(finportplot_response_payload)
@@ -153,7 +163,7 @@ def lambda_handler(event, context):
     xlsx_url = finportplot_body['spreadsheet']['url']
 
     # sending e-mail
-    string_components_portfolio = convert_portfolio_to_table(portfolio_dict, startdate, enddate)
+    string_components_portfolio = convert_portfolio_to_table(portfolio_dict['components'], startdate, enddate)
     notification_email_body = open('notification_email.html', 'r').read().format(
         symbols=', '.join(sorted(symbols)),
         runtime_minutes=runtime_minutes,
@@ -162,9 +172,9 @@ def lambda_handler(event, context):
         enddate=enddate,
         totalworth=totalworth,
         string_components_portfolio=string_components_portfolio,
-        r=portfolio_dict['yield'],
-        annual_yield=100*convert_expreturn_to_annualreturn(portfolio_dict['yield']),
-        sigma=portfolio_dict['volatility'],
+        r=portfolio['yield'],
+        annual_yield=100*convert_expreturn_to_annualreturn(portfolio['yield']),
+        sigma=portfolio['volatility'],
         image_url=image_url,
         xlsx_url=xlsx_url,
         rf=rf,
