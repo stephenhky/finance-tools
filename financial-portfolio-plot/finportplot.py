@@ -54,6 +54,8 @@ def plot_handler(event, context):
     # generate pandas dataframe
     logging.info('Calculating worth over time')
     portfolio = construct_portfolio(query['components'], startdate, enddate)
+    print(portfolio.symbols_nbshares)
+    print(portfolio)
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
     # pd.set_option('display.max_rows', len(worthdf))
     # print(pd.DataFrame.from_records(portfolio.cashtimeseries))
