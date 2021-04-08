@@ -75,7 +75,7 @@ def convert_portfolio_to_table(portfolio_dict, startdate, enddate):
                    '</tr>'
 
     row_html_template = "<tr><th><a href='https://finance.yahoo.com/quote/{symbol:}/'>{symbol:}</a></th>" + \
-                        "<th>{nbshares:}</th>" + \
+                        "<th>{nbshares:.2f}</th>" + \
                         "<th>{r:.4f} (annual: {annual_r:.2f}%)</th>" + \
                         "<th>{vol:.4f}</th>" + \
                         "<th>{downsiderisk:.4f}</th>" + \
