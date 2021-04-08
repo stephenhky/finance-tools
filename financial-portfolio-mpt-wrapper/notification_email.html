@@ -1,0 +1,54 @@
+<html>
+    <head></head>
+    <body>
+      <h1>Portfolio Optimization Computation Result</h1>
+          <p>
+              The optimization for the financial portfolio with the following symbols
+              have been finsihed: {symbols:}. It takes {runtime_minutes:d} minute(s) and
+              {runtime_seconds:.2f} seconds to run.
+          </p>
+          <p>
+              The optimization is based on the prices between {startdate:} and {enddate:},
+              with maximum total value of the portfolio being USD${totalworth:.2f}. The components
+              of this portfolio should look like this:
+          </p>
+          <p>
+              {string_components_portfolio:}
+          </p>
+          <p>
+              The performance of this portfolio is as follow:
+              <ul>
+                 <li>Yield: {r:.5f} (annual gain: {annual_yield:.2f}%)</li>
+                 <li>Volatility: {sigma:.5f}</li>
+<!--                 <li>Downside risk: {downside_risk:.5f}</li>-->
+<!--                 <li>Upside risk: {upside_risk:.5f}</li>-->
+<!--                 <li>beta (with respect to {indexsymbol:}): {beta:.4f}</li>-->
+              </ul>
+          </p>
+          <p>
+              The graph and the spreadsheet of the overall performance of this portfolio
+              from {startdate:} and {enddate:} can be downloaded through the following URLs:
+              <ul>
+                <li>Graph: <a href='{image_url:}'>{image_url:}</a></li>
+                <li>Spreadsheet: <a href='{xlsx_url:}'>{xlsx_url:}</a></li>
+              </ul>
+          </p>
+          <p>
+              Note that the links will expire 24 hours after this e-mail is sent.
+          </p>
+          <p>
+              Other parameters for the computation using modern portfolio theory (MPT):
+              <ul>
+                <li>Income from dividends considered: False</li>
+                <li>Risk free interest rate: {rf:}</li>
+                <li>riskcoef (regularization with volatility): {riskcoef:}</li>
+                <li>homogencoef (regularization with uniformity): {homogencoef:}</li>
+                <li>V: {V:}</li>
+                <li>beta computed with respect to {indexsymbol:}</li>
+              </ul>
+          </p>
+          <p>
+              Control: {filebasename:}
+          </p>
+    </body>
+</html>
