@@ -133,6 +133,7 @@ def lambda_handler(event, context):
     symbols_nbshares = result['symbols_nbshares']
     print(symbols_nbshares)
     runtime = result['runtime']
+    estimates = eventbody['estimates']
 
     runtime_minutes = int(runtime // 60)
     runtime_seconds = runtime % 60
@@ -172,9 +173,15 @@ def lambda_handler(event, context):
         enddate=enddate,
         totalworth=totalworth,
         string_components_portfolio=string_components_portfolio,
-        r=portfolio['yield'],
-        annual_yield=100*convert_expreturn_to_annualreturn(portfolio['yield']),
-        sigma=portfolio['volatility'],
+        mpt_r=portfolio['yield'],
+        mpt_annual_yield=100*convert_expreturn_to_annualreturn(portfolio['yield']),
+        mpt_sigma=portfolio['volatility'],
+        r=estimates['r'],
+        annual_yield=100*convert_expreturn_to_annualreturn(estimates['r']),
+        sigma=estimates['sigma'],
+        downside_risk=estimates['downside_risk'],
+        upside_risk=estimates['upside_risk'],
+        beta=estimates['beta'],
         image_url=image_url,
         xlsx_url=xlsx_url,
         rf=rf,
