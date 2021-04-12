@@ -2,9 +2,15 @@
 import logging
 import json
 import time
+from datetime import datetime
 
+import numpy as np
 import boto3
 from finsim.portfolio.create import get_optimized_portfolio_on_mpt_entropy_costfunction
+from finsim.portfolio.dynamic import DynamicPortfolioWithDividends
+from finsim.estimate.fit import fit_BlackScholesMerton_model
+from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
+from finsim.data.preader import get_yahoofinance_data
 
 
 def portfolio_handler(event, context):
@@ -21,6 +27,7 @@ def portfolio_handler(event, context):
     riskcoef = query.get('riskcoef', 0.3)
     homogencoef = query.get('homogencoef', 0.1)
     V = query.get('V', 10.0)
+    index = query.get('index', 'DJI')
     call_wrapper = False
     if 'email' in query:
         assert 'sender_email' in query
@@ -68,6 +75,29 @@ def portfolio_handler(event, context):
     event['symbols_nbshares'] = optimized_portfolio.symbols_nbshares
     event['runtime'] = endtime - starttime
 
+    # calculate dynamic portfolio
+    dynport = DynamicPortfolioWithDividends(optimized_portfolio.symbols_nbshares, estimating_startdate)
+    df = dynport.get_portfolio_values_overtime(estimating_startdate, estimating_enddate)
+    indexdf = get_yahoofinance_data(index, estimating_startdate, estimating_enddate)
+    indexdf['TimeStamp'] = indexdf['TimeStamp'].map(lambda item: datetime.strftime(item, '%Y-%m-%d'))
+    indexdf.index = list(indexdf['TimeStamp'])
+    df = df.join(indexdf, on='TimeStamp', how='left', rsuffix='2')
+    df['Close'] = df['Close'].ffill()
+    timestamps = np.array(df['TimeStamp'], dtype='datetime64[s]')
+    prices = np.array(df['value'])
+    r, sigma = fit_BlackScholesMerton_model(timestamps, prices)
+    downside_risk = estimate_downside_risk(timestamps, prices, 0.)
+    upside_risk = estimate_upside_risk(timestamps, prices, 0.)
+    beta = estimate_beta(timestamps, prices, np.array(df['Close']))
+    event['estimates'] = {
+        'r': r,
+        'sigma': sigma,
+        'downside_risk': downside_risk,
+        'upside_risk': upside_risk,
+        'beta': beta
+    }
+
+
     if call_wrapper:
         print('Sending e-mail')
         lambda_client = boto3.client('lambda')
@@ -81,6 +111,13 @@ def portfolio_handler(event, context):
                         'portfolio': event['portfolio'],
                         'symbols_nbshares': event['symbols_nbshares'],
                         'runtime': event['runtime']
+                    },
+                    'estimates': {
+                        'r': r,
+                        'sigma': sigma,
+                        'downside_risk': downside_risk,
+                        'upside_risk': upside_risk,
+                        'beta': beta
                     }
                 })
             })
