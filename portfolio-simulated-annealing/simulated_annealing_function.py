@@ -6,12 +6,11 @@ import time
 from functools import partial
 
 import numpy as np
-from finsim.portfolio import DynamicPortfolioWithDividends
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
 from finsim.data.preader import get_yahoofinance_data
 import boto3
-from portfolio_annealing import simulated_annealing, rewards
+from portfolio_annealing import simulated_annealing, rewards, init_dynport
 
 # Note: decoupling the modeling code and the Lambda function code that calls it
 #       the file portfolio_annealing.py is an EXACT COPY of the model training code
@@ -57,10 +56,9 @@ def simulated_annealing_handler(event, context):
     logging.info('indexsymbol: {}'.format(indexsymbol))
 
     # initializing the porfolio
-    dynport = DynamicPortfolioWithDividends({symbol: 1 for symbol in symbols}, startdate, cacheddir=cacheddir)
-    dynport.move_cursor_to_date(enddate)
-    current_val = dynport.get_portfolio_value(enddate)
-    if current_val > maxval:
+    try:
+        dynport = init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
+    except ValueError:
         return {
             'statusCode': 400,
             'body': json.dumps('Too many symbols (or maximum portfolio value too small). Value ({}) > maxval ({})'.format(current_val, maxval))

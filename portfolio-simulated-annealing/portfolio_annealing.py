@@ -99,6 +99,19 @@ def randomly_rebalance_portfolio(orig_dynport, maxvalue, with_dividends=True):
     return dynport
 
 
+def init_dynport(maxval, symbols, startdate, enddate, cacheddir=None):
+    dynport = DynamicPortfolioWithDividends(
+        {symbol: 1 for symbol in symbols},
+        startdate,
+        cacheddir=cacheddir
+    )
+    dynport.move_cursor_to_date(enddate)
+    current_val = dynport.get_portfolio_value(enddate)
+    if current_val > maxval:
+        raise ValueError('Too many symbols (or maximum portfolio value too small). Value ({}) > maxval ({})'.format(current_val, maxval))
+    return dynport
+
+
 def simulated_annealing(
         dynport,
         rewardfcn,
@@ -187,11 +200,7 @@ if __name__ == '__main__':
     logging.info('indexsymbol: {}'.format(indexsymbol))
 
     # initializing the porfolio
-    dynport = DynamicPortfolioWithDividends({symbol: 1 for symbol in symbols}, startdate, cacheddir=cacheddir)
-    dynport.move_cursor_to_date(enddate)
-    current_val = dynport.get_portfolio_value(enddate)
-    if current_val > maxval:
-        raise ValueError('Too many symbols (or maximum portfolio value too small). Value ({}) > maxval ({})'.format(current_val, maxval))
+    dynport = init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
 
     # simulated annealing
     rewardfcn = partial(rewards,
