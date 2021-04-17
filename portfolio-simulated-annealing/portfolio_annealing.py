@@ -9,6 +9,7 @@ from finsim.portfolio import DynamicPortfolioWithDividends, DynamicPortfolio
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
 from finsim.data.preader import get_symbol_closing_price, get_yahoofinance_data
+import pulp
 
 
 logging.basicConfig(level=logging.INFO)
@@ -112,6 +113,34 @@ def init_dynport(maxval, symbols, startdate, enddate, cacheddir=None):
     return dynport
 
 
+def linprog_uniform_init_dynport(maxval, symbols, startdate, enddate, cacheddir=None):
+    prices = {
+        symbol: get_symbol_closing_price(symbol, enddate, cacheddir=cacheddir)
+        for symbol in symbols
+    }
+    nbsymbols = len(symbols)
+
+    nbshares_var = pulp.LpVariable.dicts('nbshares', symbols, lowBound=1, cat='Integer')
+    allocation_problem = pulp.LpProblem('AllocationProblem', sense=pulp.LpMaximize)
+    allocation_problem += pulp.lpSum([
+        nbshares_var[symbol]*prices[symbol]
+        for symbol in symbols
+    ])
+    allocation_problem += (pulp.lpSum([
+        nbshares_var[symbol]*prices[symbol]
+        for symbol in symbols
+    ]) <= maxval, 'maximum constraint')
+    allocation_problem.solve()
+
+    nbshares = {
+        v.name[9:]: v.varValue for v in allocation_problem.variables()
+    }
+    dynport = DynamicPortfolioWithDividends(nbshares, startdate, cacheddir=cacheddir)
+    dynport.move_cursor_to_date(enddate)
+    return dynport
+
+
+
 def simulated_annealing(
         dynport,
         rewardfcn,
@@ -200,7 +229,9 @@ if __name__ == '__main__':
     logging.info('indexsymbol: {}'.format(indexsymbol))
 
     # initializing the porfolio
-    dynport = init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
+    # dynport = init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
+    dynport = linprog_uniform_init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
+    print(dynport.portfolio_symbols_nbshares)
 
     # simulated annealing
     rewardfcn = partial(rewards,
