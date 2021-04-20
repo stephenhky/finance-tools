@@ -1,4 +1,4 @@
-finsim>=0.6.6
+finsim>=0.6.7
 matplotlib>=3.3.0
 boto3>=1.17.0
 openpyxl>=3.0.0

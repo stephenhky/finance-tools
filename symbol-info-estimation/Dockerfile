@@ -7,6 +7,8 @@ WORKDIR /code
 RUN apt-get update && \
   apt-get install -y \
   g++ \
+  libc6 \
+  gfortran \
   make \
   cmake \
   unzip \

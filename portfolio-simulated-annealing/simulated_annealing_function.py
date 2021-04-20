@@ -101,11 +101,11 @@ def simulated_annealing_handler(event, context):
     beta = estimate_beta(timestamps, prices, np.array(df['Close']))
 
     result = {
-        'r': r,
-        'sigma': sigma,
-        'downside_risk': downside_risk,
-        'upside_risk': upside_risk,
-        'beta': beta,
+        'r': float(r),
+        'sigma': float(sigma),
+        'downside_risk': float(downside_risk),
+        'upside_risk': float(upside_risk),
+        'beta': float(beta) if beta is not None else None,
         'portfolio': optimized_dynport.generate_dynamic_portfolio_dict(),
         'runtime': endtime-starttime
     }

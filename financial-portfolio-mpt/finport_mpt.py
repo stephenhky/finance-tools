@@ -90,11 +90,11 @@ def portfolio_handler(event, context):
     upside_risk = estimate_upside_risk(timestamps, prices, 0.)
     beta = estimate_beta(timestamps, prices, np.array(df['Close']))
     event['estimates'] = {
-        'r': r,
-        'sigma': sigma,
-        'downside_risk': downside_risk,
-        'upside_risk': upside_risk,
-        'beta': beta
+        'r': float(r),
+        'sigma': float(sigma),
+        'downside_risk': float(downside_risk),
+        'upside_risk': float(upside_risk),
+        'beta': float(beta) if beta is not None else None
     }
 
 
@@ -113,11 +113,11 @@ def portfolio_handler(event, context):
                         'runtime': event['runtime']
                     },
                     'estimates': {
-                        'r': r,
-                        'sigma': sigma,
-                        'downside_risk': downside_risk,
-                        'upside_risk': upside_risk,
-                        'beta': beta
+                        'r': float(r),
+                        'sigma': float(sigma),
+                        'downside_risk': float(downside_risk),
+                        'upside_risk': float(upside_risk),
+                        'beta': float(beta) if beta is not None else None
                     }
                 })
             })

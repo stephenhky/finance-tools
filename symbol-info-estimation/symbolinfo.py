@@ -72,11 +72,11 @@ def symbol_handler(event, context):
 
     estimations = {
         'symbol': symbol,
-        'r': r,
-        'vol': sigma,
-        'downside_risk': downside_risk,
-        'upside_risk': upside_risk,
-        'beta': beta,
+        'r': float(r),
+        'vol': float(sigma),
+        'downside_risk': float(downside_risk),
+        'upside_risk': float(upside_risk),
+        'beta': float(beta) if beta is not None else None,
         'data_startdate': symdf['TimeStamp'][0].date().strftime('%Y-%m-%d'),
         'data_enddate': symdf['TimeStamp'][-1].date().strftime('%Y-%m-%d'),
         'nbrecs': len(symdf.loc[~isrownull, :]),
