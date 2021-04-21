@@ -33,11 +33,12 @@ async def extract_symbol_info(symbol, startdate, enddate):
     response = lambda_client.invoke(
         FunctionName='arn:aws:lambda:us-east-1:409029738116:function:fininfoestimate',
         InvocationType='RequestResponse',
-        Payload=json.dumps({'body': json.dumps({
-            'symbol': symbol,
-            'startdate': startdate,
-            'enddate': enddate
-        })
+        Payload=json.dumps({
+            'body': json.dumps({
+                'symbol': symbol,
+                'startdate': startdate,
+                'enddate': enddate
+            })
         })
     )
     response_payload = json.load(response['Payload'])
