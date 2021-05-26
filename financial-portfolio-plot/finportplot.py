@@ -26,10 +26,9 @@ def construct_portfolio(portdict, startdate, enddate):
     if portdict.get('name', '') == 'DynamicPortfolio':
         return DynamicPortfolioWithDividends.load_from_dict(portdict)
     else:
-        return DynamicPortfolioWithDividends({
-            'date': startdate,
-            'portfolio': Portfolio(portdict)
-        }, enddate)
+        portfolio = DynamicPortfolioWithDividends(portdict, startdate)
+        portfolio.move_cursor_to_date(enddate)
+        return portfolio
 
 
 def plot_handler(event, context):
