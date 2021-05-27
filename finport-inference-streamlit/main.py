@@ -3,27 +3,19 @@ import json
 from datetime import date
 from math import exp
 
+import asyncio
 import pandas as pd
 import requests
 import streamlit as st
 from matplotlib import pyplot as plt
-from finsim.portfolio import DynamicPortfolioWithDividends
 
-
-def construct_portfolio(portdict, startdate, enddate):
-    if portdict.get('name', '') == 'DynamicPortfolio':
-        return DynamicPortfolioWithDividends.load_from_dict(portdict)
-    else:
-        portfolio = DynamicPortfolioWithDividends(portdict, startdate)
-        portfolio.move_cursor_to_date(enddate)
-        return portfolio
 
 
 def convert_expreturn_to_annualreturn(r):  # in the units of year
     return exp(r)-1
 
 
-def get_symbol_estimations(symbol, startdate, enddate, index='DJI'):
+async def get_symbol_estimations(symbol, startdate, enddate, index='DJI'):
     url = "https://1phrvfsc16.execute-api.us-east-1.amazonaws.com/default/fininfoestimate"
 
     payload = json.dumps({
@@ -40,7 +32,7 @@ def get_symbol_estimations(symbol, startdate, enddate, index='DJI'):
     return json.loads(response.text)
 
 
-def get_symbol_plot_data(symbol, startdate, enddate):
+async def get_symbol_plot_data(symbol, startdate, enddate):
     url = "https://ed0lbq7vph.execute-api.us-east-1.amazonaws.com/default/finportplot"
 
     payload = json.dumps({
@@ -53,8 +45,10 @@ def get_symbol_plot_data(symbol, startdate, enddate):
     }
 
     response = requests.request("GET", url, headers=headers, data=payload)
-    data = json.loads(response.text)['data']
-    return pd.DataFrame.from_records(data)
+    result = json.loads(response.text)
+    data = result['data']
+    plot_url = result['plot']['url']
+    return pd.DataFrame.from_records(data), plot_url
 
 
 # load symbols
@@ -75,8 +69,12 @@ index = 'DJI'
 startdate = i_startdate.strftime('%Y-%m-%d')
 enddate = i_enddate.strftime('%Y-%m-%d')
 
+# starting asyncio
+task_estimate_symbols = get_symbol_estimations(symbol, startdate, enddate, index)
+task_values_over_time = get_symbol_plot_data(symbol, startdate, enddate)
+
 # estimation
-symbol_estimate = get_symbol_estimations(symbol, startdate, enddate, index)
+symbol_estimate = asyncio.run(task_estimate_symbols)
 r = symbol_estimate['r']
 sigma = symbol_estimate['vol']
 downside_risk = symbol_estimate['downside_risk']
@@ -84,7 +82,7 @@ upside_risk = symbol_estimate['upside_risk']
 beta = symbol_estimate['beta']
 
 # making portfolio and time series
-worthdf = get_symbol_plot_data(symbol, startdate, enddate)
+worthdf, plot_url = asyncio.run(task_values_over_time)
 
 # display
 col1, col2 = st.beta_columns((2, 1))
@@ -113,6 +111,7 @@ if beta is not None:
     col2.text('beta (w.r.t. {}) = {:.4f}'.format(index, beta))
 col2.text('Name: {}'.format(allsymbol_info[symbol]['description']))
 col2.markdown('Symbol: [{sym:}](https://finance.yahoo.com/quote/{sym:})'.format(sym=symbol))
+col2.markdown('[Download image]({})'.format(plot_url))
 
 # Data display
 st.title('Data')
