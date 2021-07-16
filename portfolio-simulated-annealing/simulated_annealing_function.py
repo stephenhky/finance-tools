@@ -27,6 +27,7 @@ def simulated_annealing_handler(event, context):
     nbsteps = query.get('nbsteps', 10000)
     init_temperature = query.get('init_temperature', 1000.)
     init_portfolio_dict = query.get('init_portfolio', None)
+    each_lambda_nbsteps = query['each_lambda_nbsteps']
     decfactor = query.get('decfactor', 0.75)
     temperaturechange_step = query.get('temperaturechange_step', 100)
     with_dividends = query.get('with_dividends', True)
@@ -92,33 +93,35 @@ def simulated_annealing_handler(event, context):
     endtime = time.time()
 
     logging.info('final reward function: {}'.format(rewardfcn(optimized_dynport)))
-    df = optimized_dynport.get_portfolio_values_overtime(startdate, enddate, cacheddir=cacheddir)
-    indexdf = get_yahoofinance_data(indexsymbol, startdate, enddate, cacheddir=cacheddir)
-    indexdf['TimeStamp'] = indexdf['TimeStamp'].map(lambda item: datetime.strftime(item, '%Y-%m-%d'))
-    indexdf.index = list(indexdf['TimeStamp'])
-    df = df.join(indexdf, on='TimeStamp', how='left', rsuffix='2')
-    df['Close'] = df['Close'].ffill()
-    timestamps = np.array(df['TimeStamp'], dtype='datetime64[s]')
-    prices = np.array(df['value'])
-    r, sigma = fit_BlackScholesMerton_model(timestamps, prices)
-    downside_risk = estimate_downside_risk(timestamps, prices, 0.)
-    upside_risk = estimate_upside_risk(timestamps, prices, 0.)
-    beta = estimate_beta(timestamps, prices, np.array(df['Close']))
+    # df = optimized_dynport.get_portfolio_values_overtime(startdate, enddate, cacheddir=cacheddir)
+    # indexdf = get_yahoofinance_data(indexsymbol, startdate, enddate, cacheddir=cacheddir)
+    # indexdf['TimeStamp'] = indexdf['TimeStamp'].map(lambda item: datetime.strftime(item, '%Y-%m-%d'))
+    # indexdf.index = list(indexdf['TimeStamp'])
+    # df = df.join(indexdf, on='TimeStamp', how='left', rsuffix='2')
+    # df['Close'] = df['Close'].ffill()
+    # timestamps = np.array(df['TimeStamp'], dtype='datetime64[s]')
+    # prices = np.array(df['value'])
+    # r, sigma = fit_BlackScholesMerton_model(timestamps, prices)
+    # downside_risk = estimate_downside_risk(timestamps, prices, 0.)
+    # upside_risk = estimate_upside_risk(timestamps, prices, 0.)
+    # beta = estimate_beta(timestamps, prices, np.array(df['Close']))
 
     result = {
-        'r': float(r),
-        'sigma': float(sigma),
-        'downside_risk': float(downside_risk),
-        'upside_risk': float(upside_risk),
-        'beta': float(beta) if beta is not None else None,
+        # 'r': float(r),
+        # 'sigma': float(sigma),
+        # 'downside_risk': float(downside_risk),
+        # 'upside_risk': float(upside_risk),
+        # 'beta': float(beta) if beta is not None else None,
         'portfolio': optimized_dynport.generate_dynamic_portfolio_dict(),
         'runtime': endtime-starttime
     }
+    query['remaining_nbsteps'] = query['remaining_nbsteps'] - nbsteps
+    query['current_temperature'] = query['init_temperature'] * decfactor**(each_lambda_nbsteps / temperaturechange_step)
 
     if call_wrapper:
         lambda_client = boto3.client('lambda')
         lambda_client.invoke(
-            FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-wrapper',
+            FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-relay',
             InvocationType='Event',
             Payload=json.dumps({'body': json.dumps({'query': query, 'result': result})})
         )
