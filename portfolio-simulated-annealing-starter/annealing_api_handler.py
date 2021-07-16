@@ -1,5 +1,7 @@
 
 import json
+import logging
+
 import boto3
 
 
@@ -38,6 +40,7 @@ def lambda_handler(event, context):
     maxval = query['maxval']
     symbols = query['symbols']
     nbsteps = query.get('nbsteps', 10000)
+    each_lambda_nbsteps = query.get('each_lambda_nbsteps', nbsteps)
     init_temperature = query.get('init_temperature', 1000.)
     decfactor = query.get('decfactor', 0.75)
     temperaturechange_step = query.get('temperaturechange_step', 100)
@@ -50,6 +53,16 @@ def lambda_handler(event, context):
     filebasename = generate_filename()
     sender_email = 'finportlag@gmail.com'
 
+    # check validity
+    logging.info('{} % {} = {}'.format(
+        each_lambda_nbsteps,
+        temperaturechange_step,
+        each_lambda_nbsteps % temperaturechange_step)
+    )
+    assert each_lambda_nbsteps % temperaturechange_step == 0
+    assert nbsteps % each_lambda_nbsteps == 0
+
+    # sending e-mail
     notification_email_body = open('notification_email.html', 'r').read().format(
         symbols=', '.join(sorted(symbols)),
         startdate=startdate,
@@ -69,7 +82,14 @@ def lambda_handler(event, context):
 
     send_email(sender_email, user_email, "Portfolio Optimization - Computation Started", notification_email_body)
 
-    query['nbsteps'] = nbsteps
+    # invoking Lambda
+    query['series_nbsteps'] = nbsteps
+    query['series_init_temperature'] = init_temperature
+    query['remaining_nbsteps'] = nbsteps
+    query['current_temperature'] = init_temperature
+    query['each_lambda_nbsteps'] = each_lambda_nbsteps
+
+    query['nbsteps'] = each_lambda_nbsteps
     query['init_temperature'] = init_temperature
     query['decfactor'] = decfactor
     query['temperaturechange_step'] = temperaturechange_step
@@ -78,13 +98,14 @@ def lambda_handler(event, context):
     query['lambda2'] = lambda2
     query['lambda3'] = lambda3
     query['index'] = indexsymbol
+
     query['filebasename'] = filebasename
     query['sender_email'] = sender_email
 
     lambda_client.invoke(
-        FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing',
+        FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-relay',
         InvocationType='Event',
-        Payload=json.dumps({'body': query})
+        Payload=json.dumps({'body': {'query': query}})
     )
 
     reply = query.copy()
