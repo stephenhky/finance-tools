@@ -24,6 +24,7 @@ def lambda_handler(event, context):
     query['runtime'] = runtime
     query['init_temperature'] = current_temperature
     query['init_portfolio'] = result.get('portfolio', None)
+    print('Number of remaining steps: {}'.format(remaining_nbsteps))
 
     lambda_client = boto3.client('lambda')
     if remaining_nbsteps > 0:
@@ -33,7 +34,12 @@ def lambda_handler(event, context):
             InvocationType='Event',
             Payload=json.dumps({'body': query})
         )
+        return {
+            'statusCode': 200,
+            'body': 'Continue to run'
+        }
     else:
+        print('Finishing...')
         # parsing arguments
         indexsymbol = query.get('index', 'DJI')
         startdate = query['startdate']
@@ -66,8 +72,15 @@ def lambda_handler(event, context):
             'portfolio': optimized_dynport.generate_dynamic_portfolio_dict(),
             'runtime': runtime
         }
+        logging.info(result)
+        print(result)
+
         lambda_client.invoke(
             FunctionName='arn:aws:lambda:us-east-1:409029738116:function:portfolio-simulated-annealing-wrapper',
             InvocationType='Event',
             Payload=json.dumps({'body': json.dumps({'query': query, 'result': result})})
         )
+        return {
+            'statusCode': 200,
+            'body': 'called wrapper'
+        }
