@@ -9,6 +9,7 @@ import numpy as np
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
 from finsim.data.preader import get_yahoofinance_data
+from finsim.portfolio import DynamicPortfolioWithDividends
 import boto3
 from portfolio_annealing import simulated_annealing, rewards, init_dynport
 
@@ -25,6 +26,7 @@ def simulated_annealing_handler(event, context):
     symbols = query['symbols']
     nbsteps = query.get('nbsteps', 10000)
     init_temperature = query.get('init_temperature', 1000.)
+    init_portfolio_dict = query.get('init_portfolio', None)
     decfactor = query.get('decfactor', 0.75)
     temperaturechange_step = query.get('temperaturechange_step', 100)
     with_dividends = query.get('with_dividends', True)
@@ -56,13 +58,16 @@ def simulated_annealing_handler(event, context):
     logging.info('indexsymbol: {}'.format(indexsymbol))
 
     # initializing the porfolio
-    try:
-        dynport = init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
-    except ValueError:
-        return {
-            'statusCode': 400,
-            'body': json.dumps('Too many symbols (or maximum portfolio value too small). Value ({}) > maxval ({})'.format(current_val, maxval))
-        }
+    if init_portfolio_dict is None:
+        try:
+            dynport = init_dynport(maxval, symbols, startdate, enddate, cacheddir=cacheddir)
+        except ValueError:
+            return {
+                'statusCode': 400,
+                'body': json.dumps('Too many symbols (or maximum portfolio value too small). Value ({}) > maxval ({})'.format(current_val, maxval))
+            }
+    else:
+        dynport = DynamicPortfolioWithDividends.load_from_dict(init_portfolio_dict)
 
     # simulated annealing
     starttime = time.time()
