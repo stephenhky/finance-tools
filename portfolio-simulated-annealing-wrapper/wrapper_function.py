@@ -121,8 +121,9 @@ def lambda_handler(event, context):
     enddate = query['enddate']
     maxval = query['maxval']
     symbols = query['symbols']
-    nbsteps = query['nbsteps']
-    init_temperature = query['init_temperature']
+    series_nbsteps = query['series_nbsteps']
+    each_lambda_nbsteps = query['each_lambda_nbsteps']
+    series_init_temperature = query['series_init_temperature']
     decfactor = query['decfactor']
     temperaturechange_step = query['temperaturechange_step']
     with_dividends = query['with_dividends']
@@ -169,8 +170,9 @@ def lambda_handler(event, context):
         startdate=startdate,
         enddate=enddate,
         maxval=maxval,
-        nbsteps=nbsteps,
-        init_temperature=init_temperature,
+        nbsteps=series_nbsteps,
+        each_lambda_nbsteps=each_lambda_nbsteps,
+        init_temperature=series_init_temperature,
         temperaturechange_step=temperaturechange_step,
         decfactor=decfactor,
         with_dividends='Yes' if with_dividends else 'No',

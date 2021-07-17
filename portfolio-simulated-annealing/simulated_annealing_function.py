@@ -1,14 +1,14 @@
 
 import logging
 import json
-from datetime import datetime
+# from datetime import datetime
 import time
 from functools import partial
 
-import numpy as np
-from finsim.estimate.fit import fit_BlackScholesMerton_model
-from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
-from finsim.data.preader import get_yahoofinance_data
+# import numpy as np
+# from finsim.estimate.fit import fit_BlackScholesMerton_model
+# from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
+# from finsim.data.preader import get_yahoofinance_data
 from finsim.portfolio import DynamicPortfolioWithDividends
 import boto3
 from portfolio_annealing import simulated_annealing, rewards, init_dynport
