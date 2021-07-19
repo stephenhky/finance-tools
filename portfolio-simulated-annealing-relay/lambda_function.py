@@ -72,6 +72,12 @@ def lambda_handler(event, context):
             'portfolio': optimized_dynport.generate_dynamic_portfolio_dict(),
             'runtime': runtime
         }
+        logging.info('query')
+        print('query')
+        logging.info(query)
+        print(query)
+        logging.info('result')
+        print('result')
         logging.info(result)
         print(result)
 
