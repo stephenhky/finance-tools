@@ -43,6 +43,7 @@ def lambda_handler(event, context):
     query['homogencoef'] = query.get('homogencoef', 0.1)
     query['V'] = query.get('V', 10.0)
     query['index'] = query.get('index', 'DJI')
+    query['include_dividends'] = query.get('include_dividends', False)
     if 'email' in query:
         query['sender_email'] = 'finportlag@gmail.com'
         call_wrapper = True

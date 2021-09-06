@@ -125,6 +125,7 @@ def lambda_handler(event, context):
     riskcoef = query['riskcoef']
     homogencoef = query['homogencoef']
     V = query['V']
+    include_dividends = query['include_dividends']
     indexsymbol = query['index']
     user_email = query['email']
     filebasename = query['filebasename']
@@ -190,6 +191,7 @@ def lambda_handler(event, context):
         homogencoef=homogencoef,
         indexsymbol=indexsymbol,
         V=V,
+        include_dividends=include_dividends,
         filebasename=filebasename
     )
 

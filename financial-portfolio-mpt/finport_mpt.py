@@ -28,6 +28,7 @@ def portfolio_handler(event, context):
     homogencoef = query.get('homogencoef', 0.1)
     V = query.get('V', 10.0)
     index = query.get('index', 'DJI')
+    include_dividends = query.get('include_dividends', False)
     call_wrapper = False
     if 'email' in query:
         assert 'sender_email' in query
@@ -46,6 +47,7 @@ def portfolio_handler(event, context):
     logging.info('Risk coefficient: {}'.format(riskcoef))
     logging.info('Homogeneity coefficient: {}'.format(homogencoef))
     logging.info('V: {}'.format(V))
+    logging.info('Including Dividends: {}'.format(include_dividends))
 
     # Optimization
     starttime = time.time()
@@ -59,7 +61,8 @@ def portfolio_handler(event, context):
         riskcoef,
         homogencoef,
         V=V,
-        lazy=False
+        lazy=False,
+        include_dividends=include_dividends
     )
     endtime = time.time()
 
