@@ -16,6 +16,7 @@ from finsim.data.preader import get_yahoofinance_data
 def portfolio_handler(event, context):
     # getting query
     query = event['body']
+    print(query)
 
     # getting parameter
     rf = query['rf']
@@ -28,7 +29,7 @@ def portfolio_handler(event, context):
     homogencoef = query.get('homogencoef', 0.1)
     V = query.get('V', 10.0)
     index = query.get('index', 'DJI')
-    include_dividends = query.get('include_dividends', False)
+    include_dividends = query['include_dividends']
     call_wrapper = False
     if 'email' in query:
         assert 'sender_email' in query
@@ -37,6 +38,7 @@ def portfolio_handler(event, context):
     print('call wrapper? {}'.format(call_wrapper))
     query['riskcoef'] = riskcoef
     query['homogencoef'] = homogencoef
+    print('Including Dividends: {}'.format(include_dividends))
 
     logging.info('Portfolio Optimization Using Modern Portfolio Theory (MPT)')
     logging.info('Symbols: {}'.format(', '.join(symbols)))
