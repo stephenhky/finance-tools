@@ -63,7 +63,6 @@ def portfolio_handler(event, context):
         riskcoef,
         homogencoef,
         V=V,
-        lazy=False,
         include_dividends=include_dividends
     )
     endtime = time.time()
