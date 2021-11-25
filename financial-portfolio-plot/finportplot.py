@@ -5,7 +5,7 @@ import json
 
 import boto3
 # import pandas as pd
-from finsim.portfolio import Portfolio, DynamicPortfolioWithDividends
+from finsim.portfolio import DynamicPortfolioWithDividends
 from matplotlib import pyplot as plt
 
 
