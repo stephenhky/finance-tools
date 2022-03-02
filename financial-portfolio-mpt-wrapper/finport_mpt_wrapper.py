@@ -125,6 +125,8 @@ def lambda_handler(event, context):
     riskcoef = query['riskcoef']
     homogencoef = query['homogencoef']
     V = query['V']
+    timeweighted_scheme = query['timeweighted_scheme']
+    yearscale = query.get('yearscale', 1000000.)
     include_dividends = query['include_dividends']
     indexsymbol = query['index']
     user_email = query['email']
@@ -192,7 +194,8 @@ def lambda_handler(event, context):
         indexsymbol=indexsymbol,
         V=V,
         include_dividends=include_dividends,
-        filebasename=filebasename
+        filebasename=filebasename,
+        timeweightedstr='None' if timeweighted_scheme is None else 'exponential with yearscale = {:.4f}'.format(yearscale)
     )
 
     send_email(sender_email, user_email, "Portfolio Optimization - Computation Result", notification_email_body)

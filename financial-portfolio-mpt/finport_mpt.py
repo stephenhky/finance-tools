@@ -6,7 +6,7 @@ from datetime import datetime
 
 import numpy as np
 import boto3
-from finsim.portfolio.create import get_optimized_portfolio_on_mpt_entropy_costfunction
+from finsim.portfolio.create import get_optimized_portfolio_on_mpt_entropy_costfunction, get_optimized_exponential_timeweighted_portfolio_on_mpt_entropy_costfunction
 from finsim.portfolio.dynamic import DynamicPortfolioWithDividends
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
@@ -28,7 +28,9 @@ def portfolio_handler(event, context):
     riskcoef = query.get('riskcoef', 0.3)
     homogencoef = query.get('homogencoef', 0.1)
     V = query.get('V', 10.0)
-    index = query.get('index', 'DJI')
+    index = query.get('index', '^GSPC')    # S&P 500
+    timeweighted_scheme = query.get('timeweighted_scheme')
+    yearscale = query.get('yearscale', 1000000.)
     include_dividends = query['include_dividends']
     call_wrapper = False
     if 'email' in query:
@@ -49,22 +51,40 @@ def portfolio_handler(event, context):
     logging.info('Risk coefficient: {}'.format(riskcoef))
     logging.info('Homogeneity coefficient: {}'.format(homogencoef))
     logging.info('V: {}'.format(V))
+    logging.info('Time-weighted scheme: {}'.format('None' if timeweighted_scheme is None else timeweighted_scheme))
+    if timeweighted_scheme == 'exponential':
+        logging.info('\tYear scale = {:.4f}'.format(yearscale))
     logging.info('Including Dividends: {}'.format(include_dividends))
 
     # Optimization
     starttime = time.time()
-    optimized_portfolio = get_optimized_portfolio_on_mpt_entropy_costfunction(
-        rf,
-        symbols,
-        totalworth,
-        presetdate,
-        estimating_startdate,
-        estimating_enddate,
-        riskcoef,
-        homogencoef,
-        V=V,
-        include_dividends=include_dividends
-    )
+    if timeweighted_scheme == 'exponential':
+        optimized_portfolio = get_optimized_exponential_timeweighted_portfolio_on_mpt_entropy_costfunction(
+            rf,
+            symbols,
+            totalworth,
+            presetdate,
+            estimating_startdate,
+            estimating_enddate,
+            yearscale,
+            riskcoef,
+            homogencoef,
+            V=V,
+            include_dividends=include_dividends
+        )
+    else:
+        optimized_portfolio = get_optimized_portfolio_on_mpt_entropy_costfunction(
+            rf,
+            symbols,
+            totalworth,
+            presetdate,
+            estimating_startdate,
+            estimating_enddate,
+            riskcoef,
+            homogencoef,
+            V=V,
+            include_dividends=include_dividends
+        )
     endtime = time.time()
 
     portfolio_summary = optimized_portfolio.portfolio_summary
