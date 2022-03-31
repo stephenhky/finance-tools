@@ -6,6 +6,7 @@ from socket import timeout
 from urllib.error import URLError
 
 import numpy as np
+import pandas as pd
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
 from finsim.data import get_yahoofinance_data
@@ -61,10 +62,12 @@ def symbol_handler(event, context):
         0.0
     )
     try:
+        mgdf = indexdf[['TimeStamp', 'Close']].merge(symdf[['TimeStamp', 'Close']], on='TimeStamp', how='left')
+        mgdf = mgdf.loc[~pd.isna(mgdf['Close_x']) & ~pd.isna(mgdf['Close_y']), :]
         beta = estimate_beta(
-            np.array(symdf.loc[~isrownull, 'TimeStamp']),
-            np.array(symdf.loc[~isrownull, 'Close']),
-            np.array(indexdf.loc[~isrownull, 'Close']),
+            mgdf['TimeStamp'].ravel(),
+            mgdf['Close_y'].ravel(),
+            mgdf['Close_x'].ravel()
         )
     except:
         logging.warning('Index {} failed to be integrated.'.format(index))
