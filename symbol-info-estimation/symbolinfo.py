@@ -48,17 +48,17 @@ def symbol_handler(event, context):
     # estimation
     isrownull = symdf['Close'].isnull()
     r, sigma = fit_BlackScholesMerton_model(
-        np.array(symdf.loc[~isrownull, 'TimeStamp']),
-        np.array(symdf.loc[~isrownull, 'Close'])
+        symdf.loc[~isrownull, 'TimeStamp'].ravel(),
+        symdf.loc[~isrownull, 'Close'].ravel()
     )
     downside_risk = estimate_downside_risk(
-        np.array(symdf.loc[~isrownull, 'TimeStamp']),
-        np.array(symdf.loc[~isrownull, 'Close']),
+        symdf.loc[~isrownull, 'TimeStamp'].ravel(),
+        symdf.loc[~isrownull, 'Close'].ravel(),
         0.0
     )
     upside_risk = estimate_upside_risk(
-        np.array(symdf.loc[~isrownull, 'TimeStamp']),
-        np.array(symdf.loc[~isrownull, 'Close']),
+        symdf.loc[~isrownull, 'TimeStamp'].ravel(),
+        symdf.loc[~isrownull, 'Close'].ravel(),
         0.0
     )
     try:
