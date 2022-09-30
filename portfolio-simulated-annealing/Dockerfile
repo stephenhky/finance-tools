@@ -15,8 +15,6 @@ RUN apt-get update && \
   libcurl4-openssl-dev
 
 RUN pip install -U pip
-RUN pip install -U numpy
-RUN pip install -U Cython
 RUN pip install -r requirements.txt
 RUN pip install awslambdaric boto3
 
