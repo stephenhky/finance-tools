@@ -30,35 +30,38 @@ def lambda_handler(event, context):
     querystring = query.get('querystring', None)
     maxedits = query.get('max_edit_distance_considered', 1)
     alpha = query.get('alpha', None)
-    try:
-        assert isinstance(alpha, float)
-    except AssertionError:
-        return {
-            'isBase64Encoded': False,
-            'statusCode': 400,
-            'body': 'alpha has to be float'
-        }
+    if alpha is not None:
+        try:
+            assert isinstance(alpha, float)
+        except AssertionError:
+            return {
+                'isBase64Encoded': False,
+                'statusCode': 400,
+                'body': 'alpha has to be float'
+            }
     gamma = query.get('gamma', None)
-    try:
-        assert isinstance(gamma, float)
-    except AssertionError:
-        return {
-            'isBase64Encoded': False,
-            'statusCode': 400,
-            'body': 'gamma has to be float'
-        }
-    topn = query.get(topn, 10)
-    try:
-        assert isinstance(topn, int)
-    except AssertionError:
-        return {
-            'isBase64Encoded': False,
-            'statusCode': 400,
-            'body': 'topn has to be int'
-        }
+    if gamma is not None:
+        try:
+            assert isinstance(gamma, float)
+        except AssertionError:
+            return {
+                'isBase64Encoded': False,
+                'statusCode': 400,
+                'body': 'gamma has to be float'
+            }
+    topn = query.get('topn', 10)
+    if topn is not None:
+        try:
+            assert isinstance(topn, int)
+        except AssertionError:
+            return {
+                'isBase64Encoded': False,
+                'statusCode': 400,
+                'body': 'topn has to be int'
+            }
 
     # copy model files from S3
-    os.makedirs([os.path.join('/', 'tmp', modeldir)])
+    os.makedirs(os.path.join('/', 'tmp', modeldir))
     s3_client = boto3.client('s3')
     for model_filename in model_filenames:
         s3_client.download_file(
