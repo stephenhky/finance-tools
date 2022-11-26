@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+from time import time
 
 import boto3
 
@@ -25,6 +26,7 @@ def lambda_handler(event, context):
     logging.info(event)
     logging.info(context)
     query = json.loads(event['body'])
+    starttime = time()
 
     # load data
     querystring = query.get('querystring', None)
@@ -61,6 +63,9 @@ def lambda_handler(event, context):
             }
 
     # copy model files from S3
+    logging.info('Copying model')
+    print('Copying model')
+    modelload_starttime = time()
     os.makedirs(os.path.join('/', 'tmp', modeldir))
     s3_client = boto3.client('s3')
     for model_filename in model_filenames:
@@ -69,8 +74,13 @@ def lambda_handler(event, context):
             modeldir+'/'+model_filename,
             os.path.join('/', 'tmp', modeldir, model_filename)
         )
+    modelload_endtime = time()
+    logging.info('time elapsed: {:.3f} sec'.format(modelload_endtime-modelload_starttime))
+    print('time elapsed: {:.3f} sec'.format(modelload_endtime - modelload_starttime))
 
     # load the model
+    logging.info('Initializing the model')
+    print('Initializing the model')
     extractor = SymbolMultinomialNaiveBayesExtractor.load_model(os.path.join('/', 'tmp', modeldir))
     if alpha is not None and alpha != extractor.alpha:
         extractor.alpha = alpha
@@ -78,10 +88,15 @@ def lambda_handler(event, context):
         extractor.gamma = gamma
 
     # predictions
+    logging.info('Searching: {}'.format(querystring))
+    print('Searching: {}'.format(querystring))
     ans = extractor.predict_proba(querystring, max_edit_distance_considered=maxedits)
     returned_results = [
         {symbol: proba for symbol, proba in sorted(ans.items(), key=lambda item: item[1], reverse=True)[:topn]}
     ]
+    endtime = time()
+    logging.info('total time elapsed: {:.3f} sec'.format(endtime-starttime))
+    print('total time elapsed: {:.3f} sec'.format(endtime - starttime))
     req_res = {
         'isBase64Encoded': False,
         'statusCode': 200,
