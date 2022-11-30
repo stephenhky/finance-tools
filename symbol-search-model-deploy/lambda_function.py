@@ -6,6 +6,7 @@ from time import time
 import shutil
 
 import boto3
+import botocore
 
 
 model_filenames = [
@@ -35,8 +36,15 @@ def lambda_handler(event, context):
     starttime = time()
     if not os.path.isdir(os.path.join('/', 'mnt', 'efs', efsmodeldir)):
         os.makedirs(os.path.join('/', 'mnt', 'efs', efsmodeldir))
-    s3_client = boto3.client('s3')
+    if not os.path.isdir(os.path.join('/', 'tmp', efsmodeldir)):
+        os.makedirs(os.path.join('/', 'tmp', efsmodeldir))
+    s3_client = boto3.client('s3', 'us-east-1', config=botocore.config.Config(s3={'addressing_style':'path'}))
     for model_filename in model_filenames:
+        logging.info('Source: {}'.format(modelfoldername+'/'+model_filename))
+        logging.info(' --> Destination: {}'.format(os.path.join('/', 'tmp', efsmodeldir, model_filename)))
+        print('Source: {}'.format(modelfoldername+'/'+model_filename))
+        print(' --> Destination: {}'.format(os.path.join('/', 'tmp', efsmodeldir, model_filename)))
+
         s3_client.download_file(
             s3_bucket,
             modelfoldername+'/'+model_filename,
@@ -45,6 +53,10 @@ def lambda_handler(event, context):
     movetime = time()
     logging.info('Copying to epheremel storage: {:.3f} sec'.format(movetime-starttime))
     for model_filename in model_filenames:
+        logging.info('Source: {}'.format(os.path.join('/', 'tmp', efsmodeldir, model_filename)))
+        logging.info(' --> Destination: {}'.format(os.path.join('/', 'mnt', 'efs', efsmodeldir, model_filename)))
+        print('Source: {}'.format(os.path.join('/', 'tmp', efsmodeldir, model_filename)))
+        print(' --> Destination: {}'.format(os.path.join('/', 'mnt', 'efs', efsmodeldir, model_filename)))
         shutil.move(
             os.path.join('/', 'tmp', efsmodeldir, model_filename),
             os.path.join('/', 'mnt', 'efs', efsmodeldir, model_filename)
@@ -57,3 +69,8 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': 'Copied'
     }
+
+
+# Because EFS is connected to the Lambda function, the Lambda function has to be
+# in a VPC. In order to connected to S3, you must create a Gateway endpoint for that VPC.
+# See: https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html
