@@ -4,21 +4,11 @@ import logging
 import os
 from time import time
 
-import boto3
-
 from mnbutils import SymbolMultinomialNaiveBayesExtractor
 
 
-model_filenames = [
-    'hyperparameters.json',
-    'feature2idx.json',
-    'symbols.json',
-    'symbols_weight_info.json',
-    'multinomialnb.joblib'
-]
-
 s3_bucket = os.environ.get('BUCKET')
-modeldir = os.environ.get('MODELDIR')
+efsmodeldir = os.environ.get('EFSMODELDIR')
 
 
 def lambda_handler(event, context):
@@ -62,30 +52,18 @@ def lambda_handler(event, context):
                 'body': 'topn has to be int'
             }
 
-    # copy model files from S3
-    logging.info('Copying model')
-    print('Copying model')
-    modelload_starttime = time()
-    os.makedirs(os.path.join('/', 'tmp', modeldir))
-    s3_client = boto3.client('s3')
-    for model_filename in model_filenames:
-        s3_client.download_file(
-            s3_bucket,
-            modeldir+'/'+model_filename,
-            os.path.join('/', 'tmp', modeldir, model_filename)
-        )
-    modelload_endtime = time()
-    logging.info('time elapsed: {:.3f} sec'.format(modelload_endtime-modelload_starttime))
-    print('time elapsed: {:.3f} sec'.format(modelload_endtime - modelload_starttime))
-
     # load the model
     logging.info('Initializing the model')
     print('Initializing the model')
-    extractor = SymbolMultinomialNaiveBayesExtractor.load_model(os.path.join('/', 'tmp', modeldir))
+    modelloadstarttime = time()
+    extractor = SymbolMultinomialNaiveBayesExtractor.load_model(os.path.join('/', 'mnt', 'efs', efsmodeldir))
     if alpha is not None and alpha != extractor.alpha:
         extractor.alpha = alpha
     if gamma is not None and gamma != extractor.gamma:
         extractor.gamma = gamma
+    modelloadendtime = time()
+    logging.info('Model load time: {:.3f} sec'.format(modelloadendtime-modelloadstarttime))
+    print('Model load time: {:.3f} sec'.format(modelloadendtime - modelloadstarttime))
 
     # predictions
     logging.info('Searching: {}'.format(querystring))
@@ -94,6 +72,7 @@ def lambda_handler(event, context):
     returned_results = [
         {symbol: proba for symbol, proba in sorted(ans.items(), key=lambda item: item[1], reverse=True)[:topn]}
     ]
+
     endtime = time()
     logging.info('total time elapsed: {:.3f} sec'.format(endtime-starttime))
     print('total time elapsed: {:.3f} sec'.format(endtime - starttime))
