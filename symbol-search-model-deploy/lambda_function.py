@@ -4,6 +4,7 @@ import json
 import logging
 from time import time
 import shutil
+from glob import glob
 
 import boto3
 import botocore
@@ -38,6 +39,9 @@ def lambda_handler(event, context):
         os.makedirs(os.path.join('/', 'mnt', 'efs', efsmodeldir))
     if not os.path.isdir(os.path.join('/', 'tmp', efsmodeldir)):
         os.makedirs(os.path.join('/', 'tmp', efsmodeldir))
+    else:
+        for filepath in glob(os.path.join('/', 'tmp', efsmodeldir)):
+            os.remove(filepath)
     s3_client = boto3.client('s3', 'us-east-1', config=botocore.config.Config(s3={'addressing_style':'path'}))
     for model_filename in model_filenames:
         logging.info('Source: {}'.format(modelfoldername+'/'+model_filename))
@@ -64,6 +68,10 @@ def lambda_handler(event, context):
     endtime = time()
     logging.info('Time elapsed: {:.3f} sec'.format(endtime-starttime))
     print('Time elapsed: {:.3f} sec'.format(endtime - starttime))
+    logging.info('Deleted ephereel storage')
+    print('Deleted ephereel storage')
+    for filepath in glob(os.path.join('/', 'tmp', efsmodeldir)):
+        os.remove(filepath)
 
     return {
         'statusCode': 200,
