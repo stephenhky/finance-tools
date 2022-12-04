@@ -70,7 +70,8 @@ def lambda_handler(event, context):
     print('Searching: {}'.format(querystring))
     ans = extractor.predict_proba(querystring, max_edit_distance_considered=maxedits)
     returned_results = [
-        {symbol: proba for symbol, proba in sorted(ans.items(), key=lambda item: item[1], reverse=True)[:topn]}
+        {'symbol': symbol, 'prob': proba}
+        for symbol, proba in sorted(ans.items(), key=lambda item: item[1], reverse=True)[:topn]
     ]
 
     endtime = time()
