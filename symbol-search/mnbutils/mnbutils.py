@@ -67,7 +67,7 @@ class SymbolMultinomialNaiveBayesExtractor:
 
     def convert_string_to_X(self, string, max_edit_distance_considered=1):
         tokens = string.lower().split(' ')
-        nbfeatures = self.classifier.n_features_
+        nbfeatures = self.classifier.n_features_in_
         inputX = np.zeros((1, nbfeatures))
         for token in tokens:
             if token in self.feature2idx.keys():

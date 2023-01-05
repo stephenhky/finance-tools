@@ -41,7 +41,7 @@ def lambda_handler(event, context):
                 'statusCode': 400,
                 'body': 'gamma has to be float'
             }
-    topn = query.get('topn', 10)
+    topn = query.get('topn', 5)
     if topn is not None:
         try:
             assert isinstance(topn, int)
@@ -61,6 +61,8 @@ def lambda_handler(event, context):
         extractor.alpha = alpha
     if gamma is not None and gamma != extractor.gamma:
         extractor.gamma = gamma
+    symbol_info = json.load(open(os.path.join('/', 'mnt', 'efs', efsmodeldir, 'allsymdf.json'), 'r'))
+    symbol_info = {item['symbol']: item for item in symbol_info}
     modelloadendtime = time()
     logging.info('Model load time: {:.3f} sec'.format(modelloadendtime-modelloadstarttime))
     print('Model load time: {:.3f} sec'.format(modelloadendtime - modelloadstarttime))
@@ -70,7 +72,7 @@ def lambda_handler(event, context):
     print('Searching: {}'.format(querystring))
     ans = extractor.predict_proba(querystring, max_edit_distance_considered=maxedits)
     returned_results = [
-        {'symbol': symbol, 'prob': proba}
+        {'symbol': symbol, 'prob': proba, 'descp': symbol_info[symbol]['description']}
         for symbol, proba in sorted(ans.items(), key=lambda item: item[1], reverse=True)[:topn]
     ]
 
