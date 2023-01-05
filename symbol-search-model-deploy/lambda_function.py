@@ -13,7 +13,8 @@ model_filenames = [
     'feature2idx.json',
     'symbols.json',
     'symbols_weight_info.json',
-    'multinomialnb.joblib'
+    'multinomialnb.joblib',
+    'allsymdf.json'
 ]
 
 s3_bucket = os.environ.get('BUCKET')
