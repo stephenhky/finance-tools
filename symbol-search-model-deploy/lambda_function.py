@@ -9,6 +9,7 @@ import boto3
 import botocore
 
 model_filenames = [
+    'feature_engineer_hyperparameters.json',
     'hyperparameters.json',
     'feature2idx.json',
     'symbols.json',
