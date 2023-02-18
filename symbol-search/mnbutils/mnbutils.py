@@ -3,7 +3,6 @@ from itertools import product
 import json
 import os
 
-import numpy as np
 import sparse
 from sklearn.naive_bayes import MultinomialNB
 import joblib
@@ -48,7 +47,7 @@ class SymbolInfoFeatureEngineer:
             Y.append(symbol)
             for feature, weight in weights_info.items():
                 X[i, self.feature2idx[feature]] = weight
-        X = X.to_coo().to_scipy_sparse()
+        X = X.to_coo().to_scipy_sparse().tocsr()
         return X, Y
 
     def compute_training_data(self):
@@ -58,7 +57,7 @@ class SymbolInfoFeatureEngineer:
     def convert_inputstring_to_X(self, string, max_edit_distance_considered=1):
         tokens = string.lower().split(' ')
         nbfeatures = len(self.feature2idx)
-        inputX = np.zeros((1, nbfeatures))
+        inputX = sparse.DOK((1, nbfeatures))
         for token in tokens:
             if token in self.feature2idx.keys():
                 inputX[0, self.feature2idx[token]] = 1.
@@ -69,7 +68,7 @@ class SymbolInfoFeatureEngineer:
                 edit_distance = jellyfish.damerau_levenshtein_distance(token, feature)
                 if edit_distance <= max_edit_distance_considered:
                     inputX[0, self.feature2idx[feature]] = pow(self.gamma, edit_distance)
-        return inputX
+        return inputX.to_coo().to_scipy_sparse().tocsr()
 
     def save_model(self, directory):
         json.dump(self.feature2idx, open(os.path.join(directory, 'feature2idx.json'), 'w'))
