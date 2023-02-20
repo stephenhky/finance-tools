@@ -4,9 +4,10 @@ import os
 import json
 
 import boto3
-# import pandas as pd
+import pandas as pd
 from finsim.portfolio import DynamicPortfolioWithDividends
-from matplotlib import pyplot as plt
+from plotnine import ggplot, aes, geom_line, theme, element_text, scale_x_datetime, labs
+from mizani.breaks import date_breaks
 
 
 lambda_client = boto3.client('lambda')
@@ -56,25 +57,29 @@ def plot_handler(event, context):
     print(portfolio.symbols_nbshares)
     print(portfolio)
     worthdf = portfolio.get_portfolio_values_overtime(startdate, enddate)
-    # pd.set_option('display.max_rows', len(worthdf))
-    # print(pd.DataFrame.from_records(portfolio.cashtimeseries))
-    # print(worthdf)
-    # pd.reset_option('display.max_rows')
+
+    # convert dataframe for plotting using plotnine
+    plotdf = pd.concat([
+        pd.DataFrame({
+            'TimeStamp': worthdf['TimeStamp'],
+            'value': worthdf['stock_value'],
+            'plot': 'stock price'}),
+        pd.DataFrame({
+            'TimeStamp': worthdf['TimeStamp'],
+            'value': worthdf['value'],
+            'plot': 'stock price+dividend'
+        })
+    ])
 
     # plot
     logging.info('plot')
-    f = plt.figure()
-    f.set_figwidth(10)
-    f.set_figheight(8)
-    plt.xlabel('Date')
-    plt.ylabel('Portfolio Value')
-    stockline, = plt.plot(worthdf['TimeStamp'], worthdf['stock_value'], label='stock')
-    totalline, = plt.plot(worthdf['TimeStamp'], worthdf['value'], label='stock+dividend')
-    xticks, _ = plt.xticks(rotation=90)
-    step = len(xticks) // 10
-    plt.xticks(xticks[::step])
-    plt.legend([stockline, totalline], ['stock', 'stock+dividend'])
-    plt.savefig(imgfilepath)
+    plt = (ggplot(plotdf)
+           + geom_line(aes('TimeStamp', 'value', color='plot', group=1))
+           + theme(axis_text_x=element_text(rotation=90, hjust=1))
+           + scale_x_datetime(breaks=date_breaks('3 months'))
+           + labs(x='Date', y='value')
+           )
+    plt.save(imgfilepath)
 
     # making spreadsheet
     worthdf.to_excel(xlsxfilepath)
