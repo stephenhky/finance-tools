@@ -1,0 +1,1 @@
+# Plotting chart with moving averages
