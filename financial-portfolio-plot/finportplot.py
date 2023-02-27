@@ -2,6 +2,7 @@
 import logging
 import os
 import json
+from datetime import datetime
 
 import boto3
 import pandas as pd
@@ -30,6 +31,19 @@ def construct_portfolio(portdict, startdate, enddate):
         portfolio = DynamicPortfolioWithDividends(portdict, startdate)
         portfolio.move_cursor_to_date(enddate)
         return portfolio
+
+
+def get_optimal_daybreaks(startdate, enddate):
+    timediff = datetime.strptime(enddate, '%Y-%m-%d') - datetime.strptime(startdate, '%Y-%m-%d')
+    nbdaysdiff = timediff.days
+    if nbdaysdiff > 730:
+        return '1 year'
+    elif nbdaysdiff > 365:
+        return '3 months'
+    elif nbdaysdiff > 30:
+        return '1 month'
+    else:
+        return '1 day'
 
 
 def plot_handler(event, context):
@@ -73,10 +87,11 @@ def plot_handler(event, context):
 
     # plot
     logging.info('plot')
+    plot_date_interval = get_optimal_daybreaks(startdate, enddate)
     plt = (ggplot(plotdf)
            + geom_line(aes('TimeStamp', 'value', color='plot', group=1))
            + theme(axis_text_x=element_text(rotation=90, hjust=1))
-           + scale_x_datetime(breaks=date_breaks('3 months'))
+           + scale_x_datetime(breaks=date_breaks(plot_date_interval))
            + labs(x='Date', y='value')
            )
     plt.save(imgfilepath)
