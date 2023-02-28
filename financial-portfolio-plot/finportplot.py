@@ -9,6 +9,10 @@ import pandas as pd
 from finsim.portfolio import DynamicPortfolioWithDividends
 from plotnine import ggplot, aes, geom_line, theme, element_text, scale_x_datetime, labs
 from mizani.breaks import date_breaks
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 lambda_client = boto3.client('lambda')
@@ -48,7 +52,7 @@ def get_optimal_daybreaks(startdate, enddate):
 
 def plot_handler(event, context):
     # getting config
-    config = json.load(open('config.json', 'r'))
+    s3_bucket = os.getenv('S3BUCKET')
 
     # getting query
     logging.info(event)
@@ -101,7 +105,6 @@ def plot_handler(event, context):
 
     # copy to S3
     logging.info('copying to S3')
-    s3_bucket = config['bucket']
     s3_client = boto3.client('s3')
     imgresponse = s3_client.upload_file(imgfilepath, s3_bucket, imgfilename)
     xlsxresponse = s3_client.upload_file(xlsxfilepath, s3_bucket, xlsxfilename)

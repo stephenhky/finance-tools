@@ -2,3 +2,4 @@ finsim>=0.10.0
 boto3>=1.17.0
 openpyxl>=3.0.0
 plotnine>=0.10.0
+python-dotenv
