@@ -93,7 +93,7 @@ def plot_handler(event, context):
     logging.info('plot')
     plot_date_interval = get_optimal_daybreaks(startdate, enddate)
     plt = (ggplot(plotdf)
-           + geom_line(aes('TimeStamp', 'value', color='plot', group=1))
+           + geom_line(aes('TimeStamp', 'value', color='plot'))
            + theme(axis_text_x=element_text(rotation=90, hjust=1))
            + scale_x_datetime(breaks=date_breaks(plot_date_interval))
            + labs(x='Date', y='value')
