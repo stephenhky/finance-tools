@@ -9,7 +9,7 @@ import boto3
 import pandas as pd
 from finsim.data.preader import get_yahoofinance_data
 from finsim.tech.ma import get_movingaverage_price_data
-from plotnine import ggplot, aes, geom_line, theme, element_text, scale_x_datetime, labs
+from plotnine import ggplot, aes, geom_line, theme, element_text, scale_x_datetime, labs, ggtitle
 from mizani.breaks import date_breaks
 
 
@@ -65,6 +65,7 @@ def plot_handler(event, context):
     imgfilepath = os.path.join('/', 'tmp', imgfilename)
     xlsxfilename = filename + '.xlsx'
     xlsxfilepath = os.path.join('/', 'tmp', xlsxfilename)
+    title = query.get('title', symbol)
 
     # get data
     df = get_yahoofinance_data(symbol, startdate, enddate)
@@ -97,6 +98,7 @@ def plot_handler(event, context):
            + theme(axis_text_x=element_text(rotation=90, hjust=1))
            + scale_x_datetime(breaks=date_breaks(plot_date_interval))
            + labs(x='Date', y='value')
+           + ggtitle(title)
            )
     plt.save(imgfilepath)
 
