@@ -27,6 +27,7 @@ def lambda_handler(event, context):
     # fitting
     logging.info('Model fitting')
     fitted_lppl_model = LPPLModel()
+    fitted_lppl_model.tcgap = 60 * 60 * 24
     fitted_lppl_model.fit(symdf['TimeStamp'].map(lambda ts: ts.timestamp()), symdf['Close'])
 
     # gathering output info
