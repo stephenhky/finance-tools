@@ -1,9 +1,8 @@
+
 import os
 import json
 import logging
 from time import time
-import shutil
-from glob import glob
 
 import boto3
 import botocore
