@@ -7,7 +7,7 @@ from datetime import datetime
 import boto3
 import pandas as pd
 from finsim.portfolio import DynamicPortfolioWithDividends
-from plotnine import ggplot, aes, geom_line, theme, element_text, scale_x_datetime, labs
+from plotnine import ggplot, aes, geom_line, theme, element_text, scale_x_datetime, labs, ggtitle
 from mizani.breaks import date_breaks
 from dotenv import load_dotenv
 
@@ -63,6 +63,7 @@ def plot_handler(event, context):
     enddate = query['enddate']
     logging.info('end date: {}'.format(enddate))
     filebasename = query.get('filebasename')
+    title = query.get('title')
     filename = generate_filename() if filebasename is None else filebasename
     imgfilename = filename + '.png'
     imgfilepath = os.path.join('/', 'tmp', imgfilename)
@@ -98,6 +99,8 @@ def plot_handler(event, context):
            + scale_x_datetime(breaks=date_breaks(plot_date_interval))
            + labs(x='Date', y='value')
            )
+    if title is not None:
+        plt += ggtitle(title)
     plt.save(imgfilepath)
 
     # making spreadsheet
