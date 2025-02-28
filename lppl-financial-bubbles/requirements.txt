@@ -1,5 +1,5 @@
 numpy
 scipy
 pandas
-finsim
+finsim>=1.0.5
 lppl
