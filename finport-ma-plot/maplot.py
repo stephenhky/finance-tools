@@ -96,7 +96,7 @@ def plot_handler(event, context):
     plt = (ggplot(plotdf)
            + geom_line(aes('TimeStamp', 'value', color='plot'))
            + theme(axis_text_x=element_text(rotation=90, hjust=1))
-           + scale_x_datetime(breaks=date_breaks(plot_date_interval))
+           + scale_x_datetime(breaks=date_breaks("{} days".format(plot_date_interval)))
            + labs(x='Date', y='value')
            + ggtitle(title)
            )
