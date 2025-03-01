@@ -49,10 +49,10 @@ def symbolcorr_handler(event, context):
         )
     print(combined_df)
     rarray, covmat = fit_multivariate_BlackScholesMerton_model(
-        combined_df['TimeStamp'].ravel(),
+        combined_df['TimeStamp'].to_numpy(),
         np.array([
-            combined_df['Close1'].ravel(),
-            combined_df['Close2'].ravel()
+            combined_df['Close1'].to_numpy(),
+            combined_df['Close2'].to_numpy()
         ])
     )
 
