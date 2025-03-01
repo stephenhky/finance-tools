@@ -5,7 +5,6 @@ from time import sleep
 from socket import timeout
 from urllib.error import URLError
 
-import numpy as np
 import pandas as pd
 from finsim.estimate.fit import fit_BlackScholesMerton_model
 from finsim.estimate.risk import estimate_downside_risk, estimate_upside_risk, estimate_beta
@@ -41,6 +40,7 @@ def symbol_handler(event, context):
 
     # getting stock data
     symdf = waiting_get_yahoofinance_data(symbol, startdate, enddate, waittime=waittime)
+    print("Number of lines: {}".format(len(symdf)))
 
     # getting index
     indexdf = waiting_get_yahoofinance_data(index, startdate, enddate, waittime=waittime)
@@ -48,26 +48,26 @@ def symbol_handler(event, context):
     # estimation
     isrownull = symdf['Close'].isnull()
     r, sigma = fit_BlackScholesMerton_model(
-        symdf.loc[~isrownull, 'TimeStamp'].ravel(),
-        symdf.loc[~isrownull, 'Close'].ravel()
+        symdf.loc[~isrownull, 'TimeStamp'].to_numpy(),
+        symdf.loc[~isrownull, 'Close'].to_numpy()
     )
     downside_risk = estimate_downside_risk(
-        symdf.loc[~isrownull, 'TimeStamp'].ravel(),
-        symdf.loc[~isrownull, 'Close'].ravel(),
+        symdf.loc[~isrownull, 'TimeStamp'].to_numpy(),
+        symdf.loc[~isrownull, 'Close'].to_numpy(),
         0.0
     )
     upside_risk = estimate_upside_risk(
-        symdf.loc[~isrownull, 'TimeStamp'].ravel(),
-        symdf.loc[~isrownull, 'Close'].ravel(),
+        symdf.loc[~isrownull, 'TimeStamp'].to_numpy(),
+        symdf.loc[~isrownull, 'Close'].to_numpy(),
         0.0
     )
     try:
         mgdf = indexdf[['TimeStamp', 'Close']].merge(symdf[['TimeStamp', 'Close']], on='TimeStamp', how='left')
         mgdf = mgdf.loc[~pd.isna(mgdf['Close_x']) & ~pd.isna(mgdf['Close_y']), :]
         beta = estimate_beta(
-            mgdf['TimeStamp'].ravel(),
-            mgdf['Close_y'].ravel(),
-            mgdf['Close_x'].ravel()
+            mgdf['TimeStamp'].to_numpy(),
+            mgdf['Close_y'].to_numpy(),
+            mgdf['Close_x'].to_numpy()
         )
     except:
         logging.warning('Index {} failed to be integrated.'.format(index))
@@ -81,7 +81,7 @@ def symbol_handler(event, context):
         'upside_risk': float(upside_risk),
         'beta': float(beta) if beta is not None else None,
         'data_startdate': symdf['TimeStamp'][0].date().strftime('%Y-%m-%d'),
-        'data_enddate': symdf['TimeStamp'][-1].date().strftime('%Y-%m-%d'),
+        'data_enddate': symdf['TimeStamp'][len(symdf)-1].date().strftime('%Y-%m-%d'),
         'nbrecs': len(symdf.loc[~isrownull, :]),
     }
 
