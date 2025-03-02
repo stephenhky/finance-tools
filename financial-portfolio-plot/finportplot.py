@@ -57,7 +57,10 @@ def plot_handler(event, context):
     # getting query
     logging.info(event)
     logging.info(context)
-    query = json.loads(event['body'])
+    if isinstance(event['body'], dict):
+        query = event['body']
+    else:
+        query = json.loads(event['body'])
     startdate = query['startdate']
     logging.info('start date: {}'.format(startdate))
     enddate = query['enddate']
