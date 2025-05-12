@@ -1,6 +1,5 @@
 numpy
 scipy
 pandas
-finsim>=1.0.5
+finsim>=1.0.6
 lppl
-yfinance>=0.2.59
